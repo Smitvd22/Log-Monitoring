@@ -1,0 +1,83 @@
+# ============================================================
+# Filebeat 8.x — Phase 2 Log Shipping Configuration
+# Collects app.log and ships to Logstash OR CloudWatch
+# ============================================================
+
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /home/ubuntu/log-monitor/backend/logs/app.log
+    # Parse JSON log lines automatically
+    json.keys_under_root: true
+    json.add_error_key: true
+    json.overwrite_keys: true
+    # Tag each event with the source app
+    tags: ["log-monitor", "nodejs", "production"]
+    fields:
+      environment: production
+      aws_region: us-east-1
+    fields_under_root: true
+    # Multiline: capture stack traces as one event
+    multiline.pattern: '^\s'
+    multiline.negate: false
+    multiline.match: after
+
+  # ── Also collect system logs ──────────────────────────────────────────
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/syslog
+    tags: ["syslog", "system"]
+    fields:
+      log_source: syslog
+
+# ── Output Option A: Logstash (ELK Stack) ────────────────────────────────
+output.logstash:
+  enabled: false   # Set to true if using ELK
+  hosts: ["logstash:5044"]
+  ssl.enabled: false
+
+# ── Output Option B: AWS CloudWatch Logs ─────────────────────────────────
+# Requires: filebeat module: aws
+# Uncomment to use:
+# output.awscloudwatch:
+#   enabled: true
+#   log_group_name: /log-monitor/app
+#   log_stream_name: "{agent.hostname}"
+#   region: us-east-1
+
+# ── Output Option C: Elasticsearch direct ────────────────────────────────
+# output.elasticsearch:
+#   enabled: false
+#   hosts: ["https://elasticsearch:9200"]
+#   index: "log-monitor-%{+yyyy.MM.dd}"
+#   username: "${ELASTIC_USER}"
+#   password: "${ELASTIC_PASSWORD}"
+
+# ── Processors: enrich events before shipping ─────────────────────────────
+processors:
+  - add_host_metadata: ~
+  - add_cloud_metadata: ~       # Auto-detects AWS instance metadata
+  - add_docker_metadata: ~
+  - drop_fields:
+      fields: ["agent.ephemeral_id", "ecs.version"]
+      ignore_missing: true
+  # Drop DEBUG logs to reduce volume (remove to keep them)
+  - drop_event:
+      when:
+        equals:
+          level: "DEBUG"
+
+# ── Logging ───────────────────────────────────────────────────────────────
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat.log
+  keepfiles: 3
+  permissions: 0640
+
+# ── Monitoring ────────────────────────────────────────────────────────────
+monitoring.enabled: false
+# monitoring.cluster_uuid: ""

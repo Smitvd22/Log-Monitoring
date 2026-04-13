@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: log-monitor-app
+    ports:
+      - "3000:3000"
+    volumes:
+      - log-data:/app/logs
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  generator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: log-generator
+    command: node src/logGenerator.js
+    environment:
+      - API_URL=http://app:3000
+      - INTERVAL_MS=1500
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  alerts:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: log-alerter
+    command: node src/alertSystem.js
+    environment:
+      - API_URL=http://app:3000
+      - WS_URL=ws://app:3000/ws/logs
+      - POLL_INTERVAL_MS=10000
+      - ERROR_THRESHOLD=5
+      - WARN_THRESHOLD=10
+      - P95_THRESHOLD=2000
+      # Uncomment for AWS SNS:
+      # - AWS_SNS_TOPIC_ARN=arn:aws:sns:us-east-1:ACCOUNT:log-alerts
+      # - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - log-data:/app/logs
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  log-data:

@@ -1,0 +1,26 @@
+{
+  "name": "log-monitor-backend",
+  "version": "1.0.0",
+  "description": "Log Monitoring & Alert System — Phase 1 Backend",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "generate": "node src/logGenerator.js",
+    "alerts": "node src/alertSystem.js",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1029.0",
+    "@aws-sdk/client-sns": "^3.1029.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "playwright": "^1.42.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

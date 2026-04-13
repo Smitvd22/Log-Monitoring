@@ -1,0 +1,281 @@
+# ============================================================
+# Phase 3 — Kubernetes Manifests
+# Deploys: log-monitor API, log-generator, alert-system
+# HPA (Horizontal Pod Autoscaler) for the API
+# Usage:
+#   kubectl apply -f k8s/
+# ============================================================
+
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: log-monitor
+  labels:
+    app: log-monitor
+
+---
+# ConfigMap — shared environment config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: log-monitor-config
+  namespace: log-monitor
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  SYSLOG_PORT: "5140"
+  POLL_INTERVAL_MS: "10000"
+  ERROR_THRESHOLD: "5"
+  WARN_THRESHOLD: "10"
+  P95_THRESHOLD: "2000"
+
+---
+# Secret — AWS credentials (base64 encode values)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: log-monitor-secrets
+  namespace: log-monitor
+type: Opaque
+stringData:
+  AWS_SNS_TOPIC_ARN: ""        # Set before applying
+  AWS_DEFAULT_REGION: "us-east-1"
+
+---
+# PersistentVolumeClaim — shared logs volume
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: log-data
+  namespace: log-monitor
+spec:
+  accessModes: [ReadWriteMany]
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# Deployment — API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-monitor-api
+  namespace: log-monitor
+  labels:
+    app: log-monitor-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: log-monitor-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: log-monitor-api
+    spec:
+      containers:
+      - name: api
+        image: YOUR_ECR_REPO/log-monitor:3.0.0
+        command: ["node", "src/app.js"]
+        ports:
+        - containerPort: 3000
+          name: http
+        - containerPort: 5140
+          name: syslog
+          protocol: UDP
+        envFrom:
+        - configMapRef:
+            name: log-monitor-config
+        - secretRef:
+            name: log-monitor-secrets
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: /api/health/deep
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 20
+          periodSeconds: 30
+      volumes:
+      - name: logs
+        persistentVolumeClaim:
+          claimName: log-data
+
+---
+# Service — API (ClusterIP for internal; use ALB ingress for external)
+apiVersion: v1
+kind: Service
+metadata:
+  name: log-monitor-api
+  namespace: log-monitor
+spec:
+  selector:
+    app: log-monitor-api
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3000
+  - name: syslog
+    port: 5140
+    targetPort: 5140
+    protocol: UDP
+  type: ClusterIP
+
+---
+# HorizontalPodAutoscaler — scale API on CPU
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: log-monitor-api-hpa
+  namespace: log-monitor
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: log-monitor-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Deployment — Log Generator
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-generator
+  namespace: log-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-generator
+  template:
+    metadata:
+      labels:
+        app: log-generator
+    spec:
+      containers:
+      - name: generator
+        image: YOUR_ECR_REPO/log-monitor:3.0.0
+        command: ["node", "src/logGenerator.js"]
+        env:
+        - name: API_URL
+          value: "http://log-monitor-api"
+        - name: INTERVAL_MS
+          value: "1200"
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+
+---
+# Deployment — Alert System
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-alerter
+  namespace: log-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-alerter
+  template:
+    metadata:
+      labels:
+        app: log-alerter
+    spec:
+      containers:
+      - name: alerter
+        image: YOUR_ECR_REPO/log-monitor:3.0.0
+        command: ["node", "src/alertSystem.js"]
+        env:
+        - name: API_URL
+          value: "http://log-monitor-api"
+        - name: WS_URL
+          value: "ws://log-monitor-api/ws/logs"
+        envFrom:
+        - configMapRef:
+            name: log-monitor-config
+        - secretRef:
+            name: log-monitor-secrets
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+      volumes:
+      - name: logs
+        persistentVolumeClaim:
+          claimName: log-data
+
+---
+# Ingress — exposes API externally (requires nginx ingress controller)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: log-monitor-ingress
+  namespace: log-monitor
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # WebSocket support:
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+spec:
+  rules:
+  - host: log-monitor.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: log-monitor-api
+            port:
+              number: 80

@@ -1,0 +1,8 @@
+{"id":"15a323e7adf5","timestamp":"2026-04-13T14:06:07.873Z","type":"FORCED_ANOMALY","severity":"WARNING","service":"dashboard","description":"Injected anomaly via UI"}
+{"id":"e9bcdc0d2cb0","timestamp":"2026-04-13T14:12:42.921Z","type":"FORCED_ANOMALY","severity":"WARNING","service":"dashboard","description":"Injected anomaly via UI"}
+{"id":"4fd4d51ef9c1","timestamp":"2026-04-13T14:12:51.216Z","type":"SLOW_REQUEST","severity":"WARNING","responseTime":2085,"fence":5,"service":"api-gateway","description":"Response 2085ms exceeds IQR fence (5ms) for api-gateway"}
+{"id":"c41e0a3611f8","timestamp":"2026-04-13T14:15:21.898Z","type":"SLOW_REQUEST","severity":"WARNING","responseTime":5037,"fence":5,"service":"auth-service","description":"Response 5037ms exceeds IQR fence (5ms) for auth-service"}
+{"id":"adc788409e74","timestamp":"2026-04-13T14:17:22.655Z","type":"SLOW_REQUEST","severity":"WARNING","responseTime":4601,"fence":5,"service":"auth-service","description":"Response 4601ms exceeds IQR fence (5ms) for auth-service"}
+{"id":"1d2c4c9294df","timestamp":"2026-04-13T14:18:53.090Z","type":"SLOW_REQUEST","severity":"WARNING","responseTime":5650,"fence":5,"service":"order-service","description":"Response 5650ms exceeds IQR fence (5ms) for order-service"}
+{"id":"dc5ff3bd6c8d","timestamp":"2026-04-13T14:20:53.772Z","type":"SLOW_REQUEST","severity":"WARNING","responseTime":6490,"fence":5,"service":"order-service","description":"Response 6490ms exceeds IQR fence (5ms) for order-service"}
+{"id":"68696ee2697b","timestamp":"2026-04-13T14:21:54.066Z","type":"SLOW_REQUEST","severity":"WARNING","responseTime":6158,"fence":5,"service":"order-service","description":"Response 6158ms exceeds IQR fence (5ms) for order-service"}
