@@ -132,12 +132,20 @@
       // lightweight client-side UI to mirror server data when available.
       // It can be used standalone (simulates) or to display real API state.
       const MINS=30; const timeline=Array.from({length:MINS},()=>({INFO:0,WARN:0,ERROR:0,DEBUG:0}));
-      const tlCtx=document.getElementById('tl-chart').getContext('2d');
-      const tlChart=new Chart(tlCtx,{type:'bar',data:{labels:Array.from({length:MINS},(_,i)=>''),datasets:[{label:'ERR',data:timeline.map(i=>i.ERROR),backgroundColor:'#E24B4A',stack:'s'},{label:'WARN',data:timeline.map(i=>i.WARN),backgroundColor:'#EF9F27',stack:'s'},{label:'INFO',data:timeline.map(i=>i.INFO),backgroundColor:'#3B8BD4',stack:'s'},{label:'DBG',data:timeline.map(i=>i.DEBUG),backgroundColor:'#888',stack:'s'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{stacked:true}}}});
+      let tlChart = null;
+      try {
+        if (window.Chart) {
+          const tlCtx=document.getElementById('tl-chart').getContext('2d');
+          tlChart=new Chart(tlCtx,{type:'bar',data:{labels:Array.from({length:MINS},(_,i)=>''),datasets:[{label:'ERR',data:timeline.map(i=>i.ERROR),backgroundColor:'#E24B4A',stack:'s'},{label:'WARN',data:timeline.map(i=>i.WARN),backgroundColor:'#EF9F27',stack:'s'},{label:'INFO',data:timeline.map(i=>i.INFO),backgroundColor:'#3B8BD4',stack:'s'},{label:'DBG',data:timeline.map(i=>i.DEBUG),backgroundColor:'#888',stack:'s'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{stacked:true}}}});
+        }
+      } catch (e) {
+        tlChart = null;
+      }
 
       const API_BASE = (location.origin && location.origin !== 'null') ? location.origin : 'http://localhost:3000';
       // minimal simulation when API unavailable
       let running=true, liveMode=true, logs=[],anomalies=[],alertHistory=[];let filterLevel='ALL';
+      let ws = null;
       function renderStream(){
         const container=document.querySelector('.scroll');
         const tb=document.getElementById('log-tbody');
@@ -168,27 +176,46 @@
       }
       function setFilter(l){filterLevel=l;renderStream();}
       function toggleFeed(){
-        // toggle the live feed runner (pauses/resumes the local live interval)
+        // pause/resume client-side rendering of new rows
         running = !running;
         document.querySelector('.btn[onclick*="toggleFeed"]').textContent = running ? '⏸ Pause' : '▶ Resume';
+        if (running) renderStream();
       }
 
-      async function injectAnomaly(){
+      function updateMetrics(stats){
+        const avg = stats.avgResponseTime || 0;
+        const p95 = stats.p95ResponseTime || 0;
+        const p99 = stats.p99ResponseTime || 0;
+        document.getElementById('m-total').textContent = stats.total || 0;
+        document.getElementById('m-err').textContent = stats.ERROR || 0;
+        document.getElementById('m-avg').textContent = `${avg}ms / ${p95}ms`;
+        document.getElementById('m-p99').textContent = `${p99}ms`;
+        document.getElementById('m-ano').textContent = stats.anomalies || 0;
+        document.getElementById('m-ws').textContent = stats.wsClients || 0;
+        const sc = stats.sourceCounts || {};
+        document.getElementById('src-http').textContent = sc.http || 0;
+        document.getElementById('src-lambda').textContent = sc.lambda || 0;
+        document.getElementById('src-syslog').textContent = sc.syslog || 0;
+        document.getElementById('src-anomaly').textContent = stats.anomalies || 0;
+      }
+
+      function connectWS(){
         try{
+          if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
           const wsUrl = (API_BASE.replace(/^http/,'ws')) + '/ws/logs';
-          const ws = new WebSocket(wsUrl);
+          ws = new WebSocket(wsUrl);
           ws.onopen = ()=>{document.getElementById('ws-ind').innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#1D9E75;display:inline-block"></span>WS live';};
           ws.onmessage = (ev)=>{
             try{
               const p = JSON.parse(ev.data);
               if (p.type === 'log' && p.log){
-                logs.unshift({ts:new Date(p.log.timestamp).toLocaleTimeString(),level:p.log.level,message:p.log.message,service:p.log.service,rt:p.log.responseTime,traceId:p.log.traceId});
+                logs.unshift({ts:new Date(p.log.timestamp).toLocaleTimeString(),level:p.log.level,message:p.log.message,service:p.log.service,rt:p.log.responseTime,traceId:p.log.traceId,src:p.log.source});
                 if (logs.length>800) logs.pop();
-                renderStream();
+                if (running) renderStream();
               }
               if (p.type === 'history' && p.logs){
-                logs = p.logs.map(l=>({ts:new Date(l.timestamp).toLocaleTimeString(),level:l.level,message:l.message,service:l.service,rt:l.responseTime,traceId:l.traceId}));
-                renderStream();
+                logs = p.logs.map(l=>({ts:new Date(l.timestamp).toLocaleTimeString(),level:l.level,message:l.message,service:l.service,rt:l.responseTime,traceId:l.traceId,src:l.source}));
+                if (running) renderStream();
               }
               if (p.type === 'anomalies' && p.anomalies){
                 anomalies = p.anomalies.slice();
@@ -206,6 +233,21 @@
             }
           };
           ws.onclose = ()=>{document.getElementById('ws-ind').innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#999;display:inline-block"></span>WS down';};
+          ws.onerror = ()=>{document.getElementById('ws-ind').innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#999;display:inline-block"></span>WS down';};
+        }catch(e){
+          console.error('connectWS error', e);
+        }
+      }
+
+      async function injectAnomaly(){
+        try{
+          // enable test mode (no-op if already enabled)
+          try{ await fetch(`${API_BASE}/api/debug/testmode`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:true})}); }catch(e){}
+          // emit a burst to populate buffers
+          try{ await fetch(`${API_BASE}/api/debug/emit_logs`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({count:15,level:'ERROR'})}); }catch(e){}
+          // force an anomaly for immediate UI update
+          await fetch(`${API_BASE}/api/debug/force_anomaly`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service:'dashboard',severity:'WARNING',description:'Injected anomaly via UI'})});
+          await fetchServerState();
         }catch(e){
           console.error('injectAnomaly error', e);
         }
@@ -238,8 +280,8 @@
             ws.onmessage = (ev)=>{
               try{
                 const p = JSON.parse(ev.data);
-                if (p.type === 'log' && p.log){ logs.unshift({ts:new Date(p.log.timestamp).toLocaleTimeString(),level:p.log.level,message:p.log.message,service:p.log.service,rt:p.log.responseTime,traceId:p.log.traceId}); if (logs.length>800) logs.pop(); renderStream(); }
-                if (p.type === 'history' && p.logs){ logs = p.logs.map(l=>({ts:new Date(l.timestamp).toLocaleTimeString(),level:l.level,message:l.message,service:l.service,rt:l.responseTime,traceId:l.traceId})); renderStream(); }
+                if (p.type === 'log' && p.log){ logs.unshift({ts:new Date(p.log.timestamp).toLocaleTimeString(),level:p.log.level,message:p.log.message,service:p.log.service,rt:p.log.responseTime,traceId:p.log.traceId}); if (logs.length>800) logs.pop(); if (running) renderStream(); }
+                if (p.type === 'history' && p.logs){ logs = p.logs.map(l=>({ts:new Date(l.timestamp).toLocaleTimeString(),level:l.level,message:l.message,service:l.service,rt:l.responseTime,traceId:l.traceId})); if (running) renderStream(); }
                 if (p.type === 'anomalies' && p.anomalies){ anomalies = p.anomalies.slice(); const aEl=document.getElementById('ano-list'); if(anomalies.length)aEl.innerHTML=anomalies.map(a=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${a.type} — ${a.severity}</div><div style="font-size:12px;color:var(--color-text-secondary)">${a.description}</div></div>`).join(''); }
                 if (p.type === 'anomaly' && p.anomaly){ anomalies.unshift(p.anomaly); document.getElementById('m-ano').textContent = anomalies.length; const aEl=document.getElementById('ano-list'); aEl.innerHTML = anomalies.map(a=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${a.type} — ${a.severity}</div><div style="font-size:12px;color:var(--color-text-secondary)">${a.description}</div></div>`).join(''); }
               }catch(e){}
@@ -252,25 +294,53 @@
           }
       }
 
+      async function clearAll(){
+        try{
+          await fetch(`${API_BASE}/api/logs`, { method:'DELETE' });
+        }catch(e){
+          // ignore API errors; still clear local state
+        }
+        logs = [];
+        anomalies = [];
+        renderStream();
+        renderTopErrors();
+        renderSources();
+        document.getElementById('m-total').textContent = '0';
+        document.getElementById('m-err').textContent = '0';
+        document.getElementById('m-avg').textContent = '0ms / 0ms';
+        document.getElementById('m-p99').textContent = '0ms';
+        document.getElementById('m-ano').textContent = '0';
+        document.getElementById('src-anomaly').textContent = '0';
+        document.getElementById('alert-badge').textContent = '0';
+        document.getElementById('src-alerts').textContent = '0';
+        document.getElementById('ano-list').innerHTML = '<div class="empty">No anomalies detected — inject one to demo</div>';
+        document.getElementById('heatmap-wrap').innerHTML = '<div class="empty">No heatmap data</div>';
+        document.getElementById('trace-list').innerHTML = '<div class="empty">Traces appear as logs arrive</div>';
+        document.getElementById('alert-feed').innerHTML = '<div class="empty">No alerts fired</div>';
+      }
+
           // per-panel fetch helpers
           async function fetchOverview(){
             try{
               const s = await (await fetch(`${API_BASE}/api/stats`)).json();
-              document.getElementById('m-total').textContent = s.total||0;
-              document.getElementById('m-err').textContent = s.ERROR||0;
-              document.getElementById('m-avg').textContent=(s.avgResponseTime||0)+'ms';
-              document.getElementById('m-p95').textContent=`p95: ${s.p95ResponseTime||0}ms`;
-              document.getElementById('m-p99').textContent=(s.p99ResponseTime||0)+'ms';
-              document.getElementById('m-ano').textContent=s.anomalies||0;
-              window.__lastStats=s; renderTopErrors(); renderSources();
+              updateMetrics(s);
+              window.__lastStats=s; renderTopErrors(); renderSources(); renderLevelDistribution();
+              // top errors (separate endpoint)
+              try {
+                const te = await (await fetch(`${API_BASE}/api/top-errors?limit=10`)).json();
+                window.__lastTopErrors = Array.isArray(te) ? te : (te || []);
+                renderTopErrors();
+              } catch (e) {}
               // timeline
               const tl = await (await fetch(`${API_BASE}/api/timeline?minutes=${MINS}`)).json();
               if (tl && Array.isArray(tl)){
-                tlChart.data.datasets[0].data = tl.map(x=>x.ERROR);
-                tlChart.data.datasets[1].data = tl.map(x=>x.WARN);
-                tlChart.data.datasets[2].data = tl.map(x=>x.INFO);
-                tlChart.data.datasets[3].data = tl.map(x=>x.DEBUG);
-                tlChart.update();
+                if (tlChart){
+                  tlChart.data.datasets[0].data = tl.map(x=>x.ERROR);
+                  tlChart.data.datasets[1].data = tl.map(x=>x.WARN);
+                  tlChart.data.datasets[2].data = tl.map(x=>x.INFO);
+                  tlChart.data.datasets[3].data = tl.map(x=>x.DEBUG);
+                  tlChart.update();
+                }
               }
             }catch(e){}
           }
@@ -304,18 +374,21 @@
           const heatJson = heatRes.ok ? await heatRes.json() : null;
           const alertsJson = alertsRes.ok ? await alertsRes.json() : {count:0,alerts:[]};
           // update metrics
-          document.getElementById('m-total').textContent = stats.total || 0;
-          document.getElementById('m-err').textContent = stats.ERROR || 0;
-          document.getElementById('m-avg').textContent = (stats.avgResponseTime||0)+'ms';
-          document.getElementById('m-p95').textContent = `p95: ${stats.p95ResponseTime||0}ms`;
-          document.getElementById('m-p99').textContent = (stats.p99ResponseTime||0)+'ms';
-          document.getElementById('m-ano').textContent = stats.anomalies||anomaliesJson.count||0;
+          updateMetrics({...stats, anomalies: stats.anomalies||anomaliesJson.count||0});
           document.getElementById('alert-badge').textContent = alertsJson.count||0;
+          document.getElementById('src-alerts').textContent = alertsJson.count||0;
           // store last stats for renderer helpers
           window.__lastStats = stats;
           // map server logs to local format
           logs = (logsJson.logs||[]).map(l=>({ts:new Date(l.timestamp).toLocaleTimeString(),level:l.level,message:l.message,service:l.service,rt:l.responseTime||l.rt,src:l.source,traceId:l.traceId}));
-          renderStream(); renderTopErrors(); renderSources();
+          renderStream(); renderTopErrors(); renderSources(); renderLevelDistribution();
+
+          // refresh top errors
+          try {
+            const te = await (await fetch(`${API_BASE}/api/top-errors?limit=10`)).json();
+            window.__lastTopErrors = Array.isArray(te) ? te : (te || []);
+            renderTopErrors();
+          } catch (e) {}
 
           // render anomalies list
           const anoWrap = document.getElementById('ano-list');
@@ -348,14 +421,32 @@
         }catch(err){/* ignore */}
       }
 
-      // warm-up simulation
-      for(let i=0;i<40;i++){logs.unshift({ts:new Date().toISOString().slice(11,19),level:['INFO','INFO','INFO','WARN','ERROR'][Math.floor(Math.random()*5)],message:'sim',service:['api-gateway','auth-service','order-service','payment-service','log-monitor-app'][Math.floor(Math.random()*5)],rt:Math.floor(Math.random()*1000)})}
-      renderStream();
+      // warm-up simulation (only when API is not reachable)
+      function startSimulation(){
+        for(let i=0;i<40;i++){logs.unshift({ts:new Date().toISOString().slice(11,19),level:['INFO','INFO','INFO','WARN','ERROR'][Math.floor(Math.random()*5)],message:'sim',service:['api-gateway','auth-service','order-service','payment-service','log-monitor-app'][Math.floor(Math.random()*5)],rt:Math.floor(Math.random()*1000)})}
+        renderStream();
+        setInterval(()=>{
+          try{
+            if(!running) return;
+            logs.unshift({
+              ts:new Date().toISOString().slice(11,19),
+              level:Math.random()>0.9?'ERROR':'INFO',
+              message:'live',
+              service:['api-gateway','auth-service','order-service','payment-service','log-monitor-app'][Math.floor(Math.random()*5)],
+              rt:Math.floor(Math.random()*1200)
+            });
+            if(logs.length>800) logs.pop();
+            renderStream();
+          }catch(e){
+            console.error('live tick error', e);
+          }
+        },1600);
+      }
       
       function renderTopErrors(){
         try{
           const el = document.getElementById('top-errors-ov');
-          const top = (window.__lastStats && window.__lastStats.topErrors) || [];
+          const top = window.__lastTopErrors || [];
           if (top && top.length){
             el.innerHTML = top.map(e=>`<div style="padding:6px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${e.message.slice(0,80)}</div><div style="font-size:12px;color:var(--color-text-secondary)">${e.count} × ${e.service} · ${e.lastSeen}</div></div>`).join('');
           } else {
@@ -381,23 +472,46 @@
         }
       }
 
-      // live stream simulation fallback (only runs when `running` is true)
-      setInterval(()=>{
+      function renderLevelDistribution(){
         try{
-          if(!running) return;
-          logs.unshift({
-            ts:new Date().toISOString().slice(11,19),
-            level:Math.random()>0.9?'ERROR':'INFO',
-            message:'live',
-            service:['api-gateway','auth-service','order-service','payment-service','log-monitor-app'][Math.floor(Math.random()*5)],
-            rt:Math.floor(Math.random()*1200)
-          });
-          if(logs.length>800) logs.pop();
-          renderStream();
+          const el = document.getElementById('donut-legend');
+          const s = window.__lastStats || {};
+          const items = [
+            {label:'INFO', value:s.INFO||0, color:'#3B8BD4'},
+            {label:'WARN', value:s.WARN||0, color:'#EF9F27'},
+            {label:'ERROR', value:s.ERROR||0, color:'#E24B4A'},
+            {label:'DEBUG', value:s.DEBUG||0, color:'#888'}
+          ];
+          const total = items.reduce((a,b)=>a+b.value,0);
+          if (!total){
+            el.innerHTML = 'No data';
+            return;
+          }
+          el.innerHTML = items.map(i=>`<div style="display:flex;justify-content:space-between;padding:4px 0"><div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;background:${i.color};display:inline-block"></span>${i.label}</div><div>${i.value}</div></div>`).join('');
         }catch(e){
-          console.error('live tick error', e);
+          /* ignore */
         }
-      },1600);
+      }
+
+      async function boot(){
+        let apiOk = false;
+        try{
+          const r = await fetch(`${API_BASE}/health`);
+          apiOk = r.ok;
+        }catch(e){
+          apiOk = false;
+        }
+        if (!apiOk){
+          startSimulation();
+          return;
+        }
+        connectWS();
+        await fetchServerState();
+        await fetchOverview();
+        setInterval(fetchOverview, 5000);
+      }
+
+      boot();
     </script>
   </body>
 </html>
