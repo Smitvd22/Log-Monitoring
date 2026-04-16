@@ -51,6 +51,25 @@ npm test           # 17 integration tests
 | `GET /api/metrics` | Prometheus text format |
 | `GET /api/health/deep` | Readiness probe (200/503) |
 | `POST /api/ingest/bulk` | Batch ingest (Lambda/Filebeat) |
+| `GET /api/aws/status` | AWS connectivity status (CloudWatch, S3, SNS, Lambda) |
+| `GET /api/aws/cloudwatch/log-groups` | CloudWatch log groups (limit, region) |
+| `GET /api/aws/s3/buckets` | S3 buckets |
+| `GET /api/aws/sns/topics` | SNS topics (limit, region) |
+| `GET /api/aws/lambda/functions` | Lambda functions (limit, region) |
+
+### AWS Connectivity
+
+Create a backend environment file (see `backend/.env.example`) and set:
+
+```bash
+API_KEY=your-api-key
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_SESSION_TOKEN=optional
+```
+
+If `API_KEY` is set, the dashboard must send it as `x-api-key` for `/api/aws/*` routes.
 
 ---
 

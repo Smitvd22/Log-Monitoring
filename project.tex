@@ -1,0 +1,191 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Log Monitoring \& Alert System}
+\rhead{Project Report}
+\rfoot{\thepage}
+
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!5}
+}
+
+\title{Log Monitoring \& Alert System\\\large Cloud Computing Lab -- Phase 3}
+\author{Project Report}
+\date{April 16, 2026}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Abstract}
+This project delivers a real-time log monitoring and alerting platform that ingests logs from multiple sources, detects anomalies using statistical methods, and visualizes system activity through a live dashboard. The system is designed for high throughput, low latency, and cloud-native deployment with automated scaling and alert escalation.
+
+\section{Problem Statement}
+Modern distributed systems generate high-volume logs across services and environments. Teams face delayed incident detection, noisy alerting from static thresholds, and fragmented log storage. The goal is to build an integrated platform that unifies log ingestion, provides real-time visibility, detects anomalies automatically, and triggers actionable alerts.
+
+\section{Objectives}
+\begin{enumerate}[label=\arabic*.]
+  \item Collect logs from multiple services in real time.
+  \item Store and process logs efficiently with a hybrid of in-memory buffering and persistent storage.
+  \item Visualize logs and metrics via a live interactive dashboard.
+  \item Detect anomalies using Z-score and IQR based methods.
+  \item Generate alerts through AWS SNS and Slack channels with escalation rules.
+  \item Support reproducible deployment on cloud and container platforms.
+\end{enumerate}
+
+\section{System Architecture}
+The system follows a layered pipeline:
+\begin{enumerate}[label=Layer \arabic*.]
+  \item \textbf{Log Sources:} HTTP services, Syslog UDP, and Lambda bulk ingestion.
+  \item \textbf{Ingest \& Processing:} In-memory ring buffer with log enrichment and WebSocket broadcast.
+  \item \textbf{Anomaly Detection:} Z-score for error spikes, IQR for slow response outliers.
+  \item \textbf{Storage:} JSON-lines files with rotation, CloudWatch, and S3.
+  \item \textbf{Visualization:} REST APIs and WebSocket stream feeding the dashboard.
+  \item \textbf{Alerting:} Rule-based engine with escalation and multi-channel delivery.
+\end{enumerate}
+
+\section{Core Components}
+\subsection{Backend API Server}
+The backend is an Express-based Node.js server that:
+\begin{itemize}
+  \item Ingests logs via HTTP, Syslog UDP, and bulk endpoints.
+  \item Enriches logs with metadata and persists them to JSON-lines files.
+  \item Maintains a 5,000-entry ring buffer for fast queries.
+  \item Exposes REST APIs for metrics, statistics, traces, and anomalies.
+  \item Broadcasts real-time logs and anomaly updates through WebSockets.
+\end{itemize}
+
+\subsection{Anomaly Detection}
+Two statistical detectors are used:
+\begin{itemize}
+  \item \textbf{Z-score:} Detects sudden error spikes based on a 20-minute rolling baseline.
+  \item \textbf{IQR:} Flags response-time outliers using a 500-sample history.
+\end{itemize}
+
+\subsection{Alert System}
+A dedicated alert engine evaluates nine rules including error rate, latency percentiles, error velocity, and anomaly flags. Alerts are throttled by cooldown windows, escalated from WARNING to CRITICAL after repeated violations, and sent through AWS SNS and Slack webhooks.
+
+\subsection{Log Generator}
+A traffic simulator generates logs for five microservices with weighted severity levels. It injects cascade failures and anomaly bursts to exercise detection logic and alert thresholds.
+
+\subsection{Dashboard}
+The dashboard is a static HTML page that displays:
+\begin{itemize}
+  \item Live log stream with pause and clear controls.
+  \item Overview metrics including totals, error rates, and latency percentiles.
+  \item Anomaly feed, heatmap visualization, and trace lookup.
+\end{itemize}
+
+\subsection{Serverless Processor}
+The Lambda function processes CloudWatch log events, enriches them with a severity score, writes JSON-lines records to S3, and triggers SNS alerts when thresholds are exceeded.
+
+\section{API Summary}
+Key endpoints include:
+\begin{itemize}
+  \item \texttt{GET /health} and \texttt{GET /api/health/deep}
+  \item \texttt{GET /api/metrics}, \texttt{/api/stats}, \texttt{/api/logs}, \texttt{/api/anomalies}
+  \item \texttt{GET /api/heatmap}, \texttt{/api/top-errors}, \texttt{/api/trace/:id}
+  \item \texttt{POST /api/ingest/bulk}
+  \item \texttt{WS /ws/logs}
+\end{itemize}
+
+\section{Data Flow}
+\begin{enumerate}[label=\arabic*.]
+  \item Logs arrive from HTTP, Syslog, or Lambda sources.
+  \item Logs are enriched and appended to JSON-lines files.
+  \item Entries are pushed into the ring buffer.
+  \item Anomaly checks run and store results.
+  \item WebSocket broadcasts logs and anomalies to connected clients.
+  \item Alert engine polls metrics and fires alerts as needed.
+\end{enumerate}
+
+\section{Deployment and Infrastructure}
+\subsection{Local Development}
+\begin{lstlisting}[language=bash]
+cd backend
+npm install
+npm start
+npm run generate
+npm run alerts
+\end{lstlisting}
+
+\subsection{Docker}
+Docker Compose provisions the backend, generator, and alert services with shared log storage.
+
+\subsection{Terraform (AWS)}
+Infrastructure as code provisions a VPC, subnets, ALB, auto-scaling EC2 instances, S3 log storage, SNS topics, and CloudWatch alarms.
+
+\subsection{Kubernetes}
+The system can be deployed on Kubernetes using a Deployment with rolling updates, HPA scaling, ConfigMaps, Secrets, and an Ingress configured for WebSocket traffic.
+
+\section{Testing}
+\begin{itemize}
+  \item Integration tests validate ingestion, detection, and alerting logic.
+  \item UI scripts test dashboard controls and API responses.
+  \item Manual health checks verify readiness and anomaly endpoints.
+\end{itemize}
+
+\section{Performance}
+Measured characteristics include sub-5 ms log write latency, sub-50 ms WebSocket broadcast, a 5,000-entry buffer capacity, and a sustained ingestion rate of roughly 500 logs per second on a single instance.
+
+\section{Technology Stack}
+\begin{longtable}{@{}ll@{}}
+\toprule
+\textbf{Category} & \textbf{Technology} \\\midrule
+Runtime & Node.js 20 \\
+Web Framework & Express \\
+Real-time & WebSocket (ws) \\
+Cloud & AWS EC2, Lambda, CloudWatch, S3, SNS \\
+IaC & Terraform \\
+Orchestration & Docker, Kubernetes \\
+Testing & Jest, Playwright \\
+\bottomrule
+\end{longtable}
+
+\section{Limitations}
+\begin{itemize}
+  \item Rule-based detection may miss complex anomalies without adaptive ML.
+  \item Single-region deployment can be a bottleneck during large outages.
+  \item The dashboard currently focuses on operational metrics rather than deep log analytics.
+\end{itemize}
+
+\section{Future Enhancements}
+\begin{enumerate}[label=\arabic*.]
+  \item Machine learning anomaly detection (e.g., Isolation Forest, LSTM).
+  \item Elasticsearch and Kibana integration for advanced search.
+  \item OpenTelemetry-based distributed tracing.
+  \item Log sampling and retention policies for cost optimization.
+  \item Multi-region deployment with active-active redundancy.
+  \item Role-based access control for dashboard access.
+\end{enumerate}
+
+\section{Conclusion}
+The Log Monitoring \& Alert System integrates ingestion, anomaly detection, visualization, and alerting into a single platform. It provides a practical foundation for real-time observability and can be deployed locally, in containers, or on AWS with auto-scaling. The system demonstrates a complete monitoring workflow and is extensible for production-grade enhancements.
+
+\end{document}

@@ -10,9 +10,12 @@
     "dev": "nodemon src/app.js"
   },
   "dependencies": {
+    "@aws-sdk/client-cloudwatch-logs": "^3.1029.0",
+    "@aws-sdk/client-lambda": "^3.1029.0",
     "@aws-sdk/client-s3": "^3.1029.0",
     "@aws-sdk/client-sns": "^3.1029.0",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "ws": "^8.20.0"
   },

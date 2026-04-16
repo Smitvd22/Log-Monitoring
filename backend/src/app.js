@@ -19,15 +19,25 @@ const dgram     = require('dgram');
 const WebSocket = require('ws');
 const fs        = require('fs');
 const path      = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const cors      = require('cors');
 const os        = require('os');
 const crypto    = require('crypto');
+const {
+  resolveRegion,
+  getAwsStatus,
+  listLogGroups,
+  listBuckets,
+  listTopics,
+  listFunctions,
+} = require('./awsServices');
 
 const app    = express();
 const server = http.createServer(app);
 const wss    = new WebSocket.Server({ server, path: '/ws/logs' });
 const PORT        = process.env.PORT        || 3000;
 const SYSLOG_PORT = parseInt(process.env.SYSLOG_PORT) || 5140;
+const API_KEY     = process.env.API_KEY || null;
 
 // Test mode: enable runtime debug helpers by default unless explicitly disabled
 const TEST_MODE = (typeof process.env.TEST_MODE !== 'undefined') ? (process.env.TEST_MODE === '1' || process.env.TEST_MODE === 'true') : true;
@@ -191,6 +201,20 @@ syslog.bind(SYSLOG_PORT, ()=>console.log(`📡 Syslog UDP :${SYSLOG_PORT}`));
 app.use(cors());
 app.use(express.json({ limit:'10mb' }));
 
+function requireApiKey(req, res, next) {
+  if (!API_KEY) return next();
+  const raw = req.headers['x-api-key'] || req.headers.authorization || '';
+  const key = raw.replace(/^Bearer\s+/i, '').trim();
+  if (key && key === API_KEY) return next();
+  return res.status(401).json({ error: 'Unauthorized' });
+}
+
+app.get('/api/ui-config', (_req, res) => {
+  const apiBase = process.env.UI_API_BASE || '';
+  const region = resolveRegion(process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION);
+  res.json({ apiBase, awsRegion: region, apiKey: API_KEY || '' });
+});
+
 // Serve dashboard static files at server root when available
 const STATIC_DIR = path.join(__dirname, '..', '..', 'dashboard');
 if (fs.existsSync(STATIC_DIR)) {
@@ -300,6 +324,62 @@ app.get('/api/trace/:id', (req,res)=>{
 // Simple alerts endpoint (wraps current anomaly buffer as alert feed).
 app.get('/api/alerts', (_req,res)=>{
   res.json({count:anomalyBuf.length,alerts:anomalyBuf.slice(0,parseInt(_req.query?.limit)||50)});
+});
+
+// ── AWS connectivity endpoints (API key protected if configured) ─────────
+app.use('/api/aws', requireApiKey);
+
+app.get('/api/aws/status', async (req, res) => {
+  try {
+    const region = resolveRegion(req.query.region);
+    const status = await getAwsStatus(region);
+    return res.json(status);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'AWS status failed' });
+  }
+});
+
+app.get('/api/aws/cloudwatch/log-groups', async (req, res) => {
+  try {
+    const region = resolveRegion(req.query.region);
+    const limit = parseInt(req.query.limit) || 20;
+    const data = await listLogGroups(region, Math.min(limit, 50));
+    return res.json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'CloudWatch query failed' });
+  }
+});
+
+app.get('/api/aws/s3/buckets', async (req, res) => {
+  try {
+    const region = resolveRegion(req.query.region);
+    const data = await listBuckets(region);
+    return res.json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'S3 query failed' });
+  }
+});
+
+app.get('/api/aws/sns/topics', async (req, res) => {
+  try {
+    const region = resolveRegion(req.query.region);
+    const limit = parseInt(req.query.limit) || 20;
+    const data = await listTopics(region, Math.min(limit, 50));
+    return res.json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'SNS query failed' });
+  }
+});
+
+app.get('/api/aws/lambda/functions', async (req, res) => {
+  try {
+    const region = resolveRegion(req.query.region);
+    const limit = parseInt(req.query.limit) || 20;
+    const data = await listFunctions(region, Math.min(limit, 50));
+    return res.json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Lambda query failed' });
+  }
 });
 
 // DEBUG: seed error-history and current error-minute to help testing anomaly detector

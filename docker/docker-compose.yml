@@ -48,9 +48,10 @@ services:
       - ERROR_THRESHOLD=5
       - WARN_THRESHOLD=10
       - P95_THRESHOLD=2000
-      # Uncomment for AWS SNS:
-      # - AWS_SNS_TOPIC_ARN=arn:aws:sns:us-east-1:ACCOUNT:log-alerts
-      # - AWS_DEFAULT_REGION=us-east-1
+      - AWS_SNS_TOPIC_ARN=${AWS_SNS_TOPIC_ARN}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     volumes:
       - log-data:/app/logs
     depends_on:

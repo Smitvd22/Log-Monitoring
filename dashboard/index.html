@@ -1,517 +1,470 @@
 <!doctype html>
-<!-- Phase 3 Final Dashboard (embedded static copy) -->
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Phase 3 — Log Monitor</title>
+    <title>LogMonitor Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <style>
-      /* minimal reset for Phase 3 UI */
-      html,body{height:100%}*{box-sizing:border-box;margin:0;padding:0}
-      :root{--color-background-primary:#071327;--color-background-secondary:#0e2940;--color-border-tertiary:rgba(255,255,255,.06);--color-text-primary:#e6f2ff;--color-text-secondary:#9fb2c9;--color-background-info:#cfe8ff;--color-text-info:#125d9a;--color-background-warning:#fff4e0;--color-text-warning:#6b4b00;--color-background-danger:#ffe6e6;--color-text-danger:#7a1d1d;--border-radius-lg:12px;--border-radius-md:8px}
-      body{font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#071327,#062233);color:var(--color-text-primary);padding:14px;font-size:13px}
-      .w{max-width:1200px;margin:0 auto}
-      .topbar{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:12px}
-      .logo{font-weight:600;letter-spacing:-.3px}
-      .phase-badge{font-size:11px;padding:4px 8px;border-radius:999px;background:#0f5132;color:#bbf7d0;margin-left:8px}
-      .btns{display:flex;gap:8px}
-      .btn{font-size:12px;padding:6px 10px;border-radius:10px;border:1px solid var(--color-border-tertiary);background:transparent;color:var(--color-text-secondary);cursor:pointer}
-      .btn.red{border-color:#7a1d1d;color:var(--color-text-danger)}
-      .src-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-      .src-b{background:var(--color-background-secondary);padding:6px 8px;border-radius:10px;border:1px solid var(--color-border-tertiary);font-size:12px;color:var(--color-text-secondary);display:flex;gap:8px;align-items:center}
-      .strip{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:10px}
-      .mc{background:var(--color-background-secondary);padding:10px;border-radius:8px;border:1px solid var(--color-border-tertiary)}
-      .mc .mv{font-weight:700;font-size:16px}
-      .tabs{display:flex;gap:6px;border-bottom:1px solid var(--color-border-tertiary);margin-bottom:10px}
-      .tab{padding:6px 12px;background:transparent;border:0;color:var(--color-text-secondary);cursor:pointer}
-      .tab.active{color:var(--color-text-primary);border-bottom:2px solid var(--color-text-primary);font-weight:600}
-      .panel{display:none}.panel.active{display:block}
-      .card{background:var(--color-background-primary);padding:10px;border-radius:12px;border:1px solid var(--color-border-tertiary)}
-      .g2{display:grid;grid-template-columns:2fr 1fr;gap:8px}
-      /* keep overview cards compact to avoid page growth */
-      .g2 .card{min-height:120px;overflow:hidden}
-      /* cap timeline and distribution visuals */
-      #tl-chart{height:100px!important;max-height:100px!important;display:block;width:100%!important}
-      #donut-legend{height:100px!important;max-height:100px!important;overflow:hidden}
-      .scroll{height:220px;overflow-y:auto;overflow-x:hidden}
-      /* ensure table inside scroll is contained and doesn't expand page height */
-      .scroll table{width:100%;border-collapse:collapse;display:block}
-      .scroll tbody{display:block;max-height:220px;overflow-y:auto}
-      .scroll tr{display:table;table-layout:fixed;width:100%}
-      .scroll td{padding:6px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .empty{color:var(--color-text-secondary);text-align:center;padding:18px}
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      :root {
+        --bg-0: #070b12;
+        --bg-1: #0b1220;
+        --bg-2: #111c2f;
+        --panel: rgba(18, 30, 51, 0.9);
+        --panel-strong: rgba(23, 38, 63, 0.95);
+        --stroke: rgba(255, 255, 255, 0.08);
+        --text: #f0f4ff;
+        --muted: #9aa7bf;
+        --accent: #ff8a00;
+        --accent-2: #00d1c1;
+        --error: #ff5d5d;
+        --warn: #ffb74a;
+        --info: #52a7ff;
+        --debug: #a3a3a3;
+        --ok: #48e39a;
+        --shadow: 0 16px 48px rgba(3, 10, 22, 0.55);
+        --radius: 16px;
+      }
+
+      body {
+        min-height: 100vh;
+        background: radial-gradient(circle at 12% 12%, rgba(255, 138, 0, 0.18), transparent 35%),
+          radial-gradient(circle at 88% 18%, rgba(0, 209, 193, 0.16), transparent 40%),
+          linear-gradient(160deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2));
+        color: var(--text);
+        font-family: "Space Grotesk", sans-serif;
+        padding: 24px;
+      }
+
+      .shell {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+        animation: fadeUp 520ms ease-out;
+      }
+
+      header {
+        display: grid;
+        gap: 12px;
+        background: linear-gradient(135deg, rgba(20, 33, 55, 0.96), rgba(14, 22, 39, 0.96));
+        border: 1px solid var(--stroke);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .headline {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .title {
+        font-size: clamp(1.5rem, 2.3vw, 2.4rem);
+        letter-spacing: 0.4px;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 0.96rem;
+        margin-top: 4px;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--stroke);
+        font-size: 0.82rem;
+        color: var(--muted);
+        background: rgba(9, 14, 25, 0.6);
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--ok);
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .control-card {
+        background: var(--panel);
+        border: 1px solid var(--stroke);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+      }
+
+      .control-card h3 {
+        font-size: 0.96rem;
+        margin-bottom: 8px;
+      }
+
+      .control-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+      }
+
+      label {
+        font-size: 0.75rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      input {
+        width: 100%;
+        margin-top: 6px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--stroke);
+        background: rgba(7, 11, 18, 0.7);
+        color: var(--text);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.85rem;
+      }
+
+      .btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      button {
+        border: none;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 120ms ease, filter 120ms ease;
+      }
+
+      button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+      button:active { transform: translateY(0); }
+
+      .btn-primary {
+        background: linear-gradient(130deg, var(--accent), #ffb24d);
+        color: #2a1b08;
+      }
+
+      .btn-secondary {
+        background: linear-gradient(130deg, var(--accent-2), #72ffe3);
+        color: #0a2f2b;
+      }
+
+      .btn-ghost {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        border: 1px solid var(--stroke);
+      }
+
+      .btn-danger {
+        background: rgba(255, 93, 93, 0.15);
+        color: var(--error);
+        border: 1px solid rgba(255, 93, 93, 0.35);
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric {
+        background: var(--panel-strong);
+        border: 1px solid var(--stroke);
+        border-radius: 14px;
+        padding: 12px 14px;
+        box-shadow: var(--shadow);
+        animation: popIn 460ms ease both;
+      }
+
+      .metric span {
+        display: block;
+        font-size: 0.74rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .metric strong {
+        font-size: 1.2rem;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 12px;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--stroke);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        min-height: 260px;
+        overflow: hidden;
+      }
+
+      .panel h3 {
+        padding: 12px 16px;
+        font-size: 0.96rem;
+        border-bottom: 1px solid var(--stroke);
+      }
+
+      .panel-body {
+        padding: 12px 16px;
+        flex: 1;
+        overflow: auto;
+      }
+
+      .scroll {
+        max-height: 320px;
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.8rem;
+      }
+
+      td {
+        padding: 6px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .tag {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        display: inline-block;
+        font-weight: 600;
+      }
+
+      .tag.INFO { background: rgba(82, 167, 255, 0.2); color: #9ac9ff; }
+      .tag.WARN { background: rgba(255, 183, 74, 0.2); color: #ffd38f; }
+      .tag.ERROR { background: rgba(255, 93, 93, 0.2); color: #ffc0c0; }
+      .tag.DEBUG { background: rgba(163, 163, 163, 0.2); color: #d6d6d6; }
+
+      .empty {
+        color: var(--muted);
+        text-align: center;
+        padding: 16px;
+      }
+
+      .list-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.8rem;
+      }
+
+      .aws-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .status-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 0.85rem;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .status-line strong { font-weight: 600; }
+      .status-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 999px; }
+      .status-ok { background: rgba(72, 227, 154, 0.2); color: #8df0c4; }
+      .status-warn { background: rgba(255, 183, 74, 0.2); color: #ffd38f; }
+      .status-bad { background: rgba(255, 93, 93, 0.2); color: #ffc0c0; }
+
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes popIn {
+        from { transform: translateY(8px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      @media (max-width: 1024px) {
+        .controls { grid-template-columns: 1fr; }
+        .metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .grid-2 { grid-template-columns: 1fr; }
+        .grid-3 { grid-template-columns: 1fr; }
+        .aws-grid { grid-template-columns: 1fr; }
+      }
+
+      @media (max-width: 640px) {
+        body { padding: 16px; }
+        .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
     </style>
   </head>
   <body>
-    <!-- Embedded Phase 3 dashboard (static) -->
-    <div class="w">
-      <div class="topbar">
-        <div>
-          <div style="display:flex;align-items:center;gap:8px"><div class="logo">LogMonitor</div><div class="phase-badge">Phase 3 — Final</div></div>
-          <div style="color:var(--color-text-secondary);margin-top:6px">Anomaly detection · Multi-source ingest · Distributed tracing</div>
-        </div>
-        <div class="btns">
-          <div id="ws-ind" style="font-size:12px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#1D9E75;display:inline-block"></span>WS live</div>
-          <button class="btn" onclick="toggleFeed()">⏸ Pause</button>
-          <button class="btn" onclick="injectAnomaly()">🔬 Inject Anomaly</button>
-          <button class="btn red" onclick="triggerCascade()">⚡ Cascade</button>
-          <button class="btn" onclick="clearAll()">🗑 Clear</button>
-        </div>
-      </div>
-
-      <div class="src-row">
-        <div class="src-b">HTTP API: <span id="src-http">0</span></div>
-        <div class="src-b">Lambda bulk: <span id="src-lambda">0</span></div>
-        <div class="src-b">Syslog UDP: <span id="src-syslog">0</span></div>
-        <div class="src-b">Anomalies: <span id="src-anomaly">0</span></div>
-        <div class="src-b">Alerts fired: <span id="src-alerts">0</span></div>
-      </div>
-
-      <div class="strip">
-        <div class="mc"><div style="font-size:11px;color:var(--color-text-secondary)">Total (5 min)</div><div class="mv" id="m-total">0</div></div>
-        <div class="mc"><div style="font-size:11px;color:var(--color-text-secondary)">Errors</div><div class="mv" id="m-err">0</div></div>
-        <div class="mc"><div style="font-size:11px;color:var(--color-text-secondary)">Avg / P95 RT</div><div class="mv" id="m-avg">0ms</div></div>
-        <div class="mc"><div style="font-size:11px;color:var(--color-text-secondary)">P99 RT</div><div class="mv" id="m-p99">0ms</div></div>
-        <div class="mc"><div style="font-size:11px;color:var(--color-text-secondary)">Anomalies</div><div class="mv" id="m-ano">0</div></div>
-        <div class="mc"><div style="font-size:11px;color:var(--color-text-secondary)">WS Clients</div><div class="mv" id="m-ws">1</div></div>
-      </div>
-
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('overview',this)">Overview</button>
-        <button class="tab" onclick="switchTab('stream',this)">Live Stream</button>
-        <button class="tab" onclick="switchTab('anomalies',this)">Anomalies</button>
-        <button class="tab" onclick="switchTab('heatmap',this)">Heatmap</button>
-        <button class="tab" onclick="switchTab('traces',this)">Traces</button>
-        <button class="tab" onclick="switchTab('alerts',this)">Alerts <span id="alert-badge" style="background:#7a1d1d;color:#fff;padding:2px 6px;border-radius:8px;margin-left:6px;font-size:11px">0</span></button>
-      </div>
-
-      <div class="panel active" id="tab-overview">
-        <div class="g2" style="margin-bottom:10px">
-          <div class="card"><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Log timeline — 30 min</div><canvas id="tl-chart" style="height:100px;width:100%"></canvas></div>
-          <div class="card"><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Level distribution</div><div id="donut-legend" style="font-size:12px;color:var(--color-text-secondary)">No data</div></div>
-        </div>
-        <div class="g2">
-          <div class="card"><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Top errors</div><div id="top-errors-ov"><div class="empty">No errors yet</div></div></div>
-          <div class="card"><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Sources</div><div id="sources-chart"><div class="empty">No data</div></div></div>
-        </div>
-      </div>
-
-      <div class="panel" id="tab-stream">
-        <div class="card">
-          <div style="margin-bottom:8px">
-            <button class="btn" onclick="setFilter('ALL',this)">All</button>
-            <button class="btn" onclick="setFilter('INFO',this)">Info</button>
-            <button class="btn" onclick="setFilter('WARN',this)">Warn</button>
-            <button class="btn" onclick="setFilter('ERROR',this)">Error</button>
-            <button class="btn" onclick="setFilter('DEBUG',this)">Debug</button>
+    <div class="shell">
+      <header>
+        <div class="headline">
+          <div>
+            <div class="title">LogMonitor Phase 3 Dashboard</div>
+            <div class="subtitle">Anomaly detection, multi-source ingest, distributed tracing, AWS visibility</div>
           </div>
-          <div class="scroll"><table style="width:100%"><tbody id="log-tbody"></tbody></table><div id="log-empty" class="empty">No logs</div></div>
+          <div class="pill-row">
+            <div class="pill" id="api-pill"><span class="dot" id="api-dot"></span>API</div>
+            <div class="pill" id="ws-pill"><span class="dot" id="ws-dot"></span>WebSocket</div>
+            <div class="pill" id="aws-pill"><span class="dot" id="aws-dot"></span>AWS</div>
+          </div>
         </div>
-      </div>
+        <div class="controls">
+          <div class="control-card">
+            <h3>Actions</h3>
+            <div class="btn-row">
+              <button class="btn-secondary" id="toggle-feed" onclick="toggleFeed()">Pause</button>
+              <button class="btn-ghost" id="toggle-mode" onclick="toggleMode()">Mode: AWS</button>
+              <button class="btn-ghost" onclick="injectAnomaly()">Inject Anomaly</button>
+              <button class="btn-danger" onclick="triggerCascade()">Cascade</button>
+              <button class="btn-ghost" onclick="clearAll()">Clear</button>
+            </div>
+          </div>
+        </div>
+      </header>
 
-      <div class="panel" id="tab-anomalies">
-        <div class="card"><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Anomalies</div><div id="ano-list"><div class="empty">No anomalies detected — inject one to demo</div></div></div>
-      </div>
+      <section class="metric-grid">
+        <div class="metric"><span>Total (5 min)</span><strong id="m-total">0</strong></div>
+        <div class="metric"><span>Errors</span><strong id="m-err">0</strong></div>
+        <div class="metric"><span>Avg / P95 RT</span><strong id="m-avg">0ms</strong></div>
+        <div class="metric"><span>P99 RT</span><strong id="m-p99">0ms</strong></div>
+        <div class="metric"><span>Anomalies</span><strong id="m-ano">0</strong></div>
+        <div class="metric"><span>WS Clients</span><strong id="m-ws">0</strong></div>
+      </section>
 
-      <div class="panel" id="tab-heatmap">
-        <div class="card"><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Error heatmap</div><div id="heatmap-wrap"><div class="empty">No heatmap data</div></div></div>
-      </div>
+      <section class="grid-2">
+        <div class="panel">
+          <h3>Log Timeline (30 min)</h3>
+          <div class="panel-body">
+            <canvas id="tl-chart" style="height:160px;width:100%"></canvas>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Level Distribution</h3>
+          <div class="panel-body" id="donut-legend">No data</div>
+        </div>
+      </section>
 
-      <div class="panel" id="tab-traces">
-        <div class="card"><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Recent traces</div><div id="trace-list"><div class="empty">Traces appear as logs arrive</div></div></div>
-      </div>
+      <section class="grid-2">
+        <div class="panel">
+          <h3>Top Errors</h3>
+          <div class="panel-body" id="top-errors-ov"><div class="empty">No errors yet</div></div>
+        </div>
+        <div class="panel">
+          <h3>Sources</h3>
+          <div class="panel-body" id="sources-chart"><div class="empty">No data</div></div>
+        </div>
+      </section>
 
-      <div class="panel" id="tab-alerts">
-        <div class="g2"><div class="card"><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Alert feed</div><div id="alert-feed"><div class="empty">No alerts fired</div></div></div><div class="card"><div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Alert summary</div><div id="alert-summary"><div class="empty">No alerts</div></div></div></div>
-      </div>
+      <section class="grid-3">
+        <div class="panel">
+          <h3>Live Stream</h3>
+          <div class="panel-body scroll">
+            <div style="margin-bottom:10px" class="btn-row">
+              <button class="btn-ghost" onclick="setFilter('ALL')">All</button>
+              <button class="btn-ghost" onclick="setFilter('INFO')">Info</button>
+              <button class="btn-ghost" onclick="setFilter('WARN')">Warn</button>
+              <button class="btn-ghost" onclick="setFilter('ERROR')">Error</button>
+              <button class="btn-ghost" onclick="setFilter('DEBUG')">Debug</button>
+            </div>
+            <table><tbody id="log-tbody"></tbody></table>
+            <div id="log-empty" class="empty">No logs</div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Anomalies</h3>
+          <div class="panel-body" id="ano-list"><div class="empty">No anomalies detected</div></div>
+        </div>
+        <div class="panel">
+          <h3>Alerts</h3>
+          <div class="panel-body" id="alert-feed"><div class="empty">No alerts fired</div></div>
+        </div>
+      </section>
+
+      <section class="grid-2">
+        <div class="panel">
+          <h3>Error Heatmap</h3>
+          <div class="panel-body" id="heatmap-wrap"><div class="empty">No heatmap data</div></div>
+        </div>
+        <div class="panel">
+          <h3>Recent Traces</h3>
+          <div class="panel-body" id="trace-list"><div class="empty">Traces appear as logs arrive</div></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h3>AWS Connectivity</h3>
+        <div class="panel-body">
+          <div class="status-line"><strong>CloudWatch Logs</strong><span id="aws-cw-status" class="status-badge status-warn">Unknown</span></div>
+          <div class="status-line"><strong>S3</strong><span id="aws-s3-status" class="status-badge status-warn">Unknown</span></div>
+          <div class="status-line"><strong>SNS</strong><span id="aws-sns-status" class="status-badge status-warn">Unknown</span></div>
+          <div class="status-line"><strong>Lambda</strong><span id="aws-lambda-status" class="status-badge status-warn">Unknown</span></div>
+          <div class="aws-grid" style="margin-top:12px">
+            <div>
+              <div class="list-row" style="font-weight:600">CloudWatch Log Groups</div>
+              <div id="aws-cw-list"><div class="empty">No data</div></div>
+            </div>
+            <div>
+              <div class="list-row" style="font-weight:600">S3 Buckets</div>
+              <div id="aws-s3-list"><div class="empty">No data</div></div>
+            </div>
+            <div>
+              <div class="list-row" style="font-weight:600">SNS Topics</div>
+              <div id="aws-sns-list"><div class="empty">No data</div></div>
+            </div>
+            <div>
+              <div class="list-row" style="font-weight:600">Lambda Functions</div>
+              <div id="aws-lambda-list"><div class="empty">No data</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-    <script>
-      // lightweight client-side UI to mirror server data when available.
-      // It can be used standalone (simulates) or to display real API state.
-      const MINS=30; const timeline=Array.from({length:MINS},()=>({INFO:0,WARN:0,ERROR:0,DEBUG:0}));
-      let tlChart = null;
-      try {
-        if (window.Chart) {
-          const tlCtx=document.getElementById('tl-chart').getContext('2d');
-          tlChart=new Chart(tlCtx,{type:'bar',data:{labels:Array.from({length:MINS},(_,i)=>''),datasets:[{label:'ERR',data:timeline.map(i=>i.ERROR),backgroundColor:'#E24B4A',stack:'s'},{label:'WARN',data:timeline.map(i=>i.WARN),backgroundColor:'#EF9F27',stack:'s'},{label:'INFO',data:timeline.map(i=>i.INFO),backgroundColor:'#3B8BD4',stack:'s'},{label:'DBG',data:timeline.map(i=>i.DEBUG),backgroundColor:'#888',stack:'s'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{stacked:true}}}});
-        }
-      } catch (e) {
-        tlChart = null;
-      }
-
-      const API_BASE = (location.origin && location.origin !== 'null') ? location.origin : 'http://localhost:3000';
-      // minimal simulation when API unavailable
-      let running=true, liveMode=true, logs=[],anomalies=[],alertHistory=[];let filterLevel='ALL';
-      let ws = null;
-      function renderStream(){
-        const container=document.querySelector('.scroll');
-        const tb=document.getElementById('log-tbody');
-        const em=document.getElementById('log-empty');
-        const prevScroll = container ? container.scrollTop : 0;
-        const prevHeight = container ? container.scrollHeight : 0;
-        const vis=logs.filter(l=>filterLevel==='ALL'||l.level===filterLevel).slice(0,80);
-        if(!vis.length){tb.innerHTML='';if(em)em.style.display='block';return;} if(em)em.style.display='none';
-        tb.innerHTML=vis.map(l=>`<tr><td style="width:70px">${l.ts}</td><td style="width:70px"><span style="padding:2px 6px;border-radius:6px;background:#222;color:#fff;font-size:11px">${l.level}</span></td><td>${l.service}</td><td style="text-align:right">${l.rt||0}ms</td></tr>`).join('');
-        // preserve user's scroll position when new rows are prepended
-        if (container) {
-          const newHeight = container.scrollHeight;
-          container.scrollTop = Math.max(0, prevScroll + (newHeight - prevHeight));
-        }
-      }
-      function switchTab(id,btn){
-        document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-        document.getElementById('tab-'+id).classList.add('active');
-        btn.classList.add('active');
-        // fetch data for the selected tab
-        if (id==='overview') fetchOverview();
-        if (id==='stream')   fetchStream();
-        if (id==='anomalies')fetchAnomalies();
-        if (id==='heatmap')  fetchHeatmap();
-        if (id==='traces')   fetchTraces();
-        if (id==='alerts')   fetchAlerts();
-      }
-      function setFilter(l){filterLevel=l;renderStream();}
-      function toggleFeed(){
-        // pause/resume client-side rendering of new rows
-        running = !running;
-        document.querySelector('.btn[onclick*="toggleFeed"]').textContent = running ? '⏸ Pause' : '▶ Resume';
-        if (running) renderStream();
-      }
-
-      function updateMetrics(stats){
-        const avg = stats.avgResponseTime || 0;
-        const p95 = stats.p95ResponseTime || 0;
-        const p99 = stats.p99ResponseTime || 0;
-        document.getElementById('m-total').textContent = stats.total || 0;
-        document.getElementById('m-err').textContent = stats.ERROR || 0;
-        document.getElementById('m-avg').textContent = `${avg}ms / ${p95}ms`;
-        document.getElementById('m-p99').textContent = `${p99}ms`;
-        document.getElementById('m-ano').textContent = stats.anomalies || 0;
-        document.getElementById('m-ws').textContent = stats.wsClients || 0;
-        const sc = stats.sourceCounts || {};
-        document.getElementById('src-http').textContent = sc.http || 0;
-        document.getElementById('src-lambda').textContent = sc.lambda || 0;
-        document.getElementById('src-syslog').textContent = sc.syslog || 0;
-        document.getElementById('src-anomaly').textContent = stats.anomalies || 0;
-      }
-
-      function connectWS(){
-        try{
-          if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
-          const wsUrl = (API_BASE.replace(/^http/,'ws')) + '/ws/logs';
-          ws = new WebSocket(wsUrl);
-          ws.onopen = ()=>{document.getElementById('ws-ind').innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#1D9E75;display:inline-block"></span>WS live';};
-          ws.onmessage = (ev)=>{
-            try{
-              const p = JSON.parse(ev.data);
-              if (p.type === 'log' && p.log){
-                logs.unshift({ts:new Date(p.log.timestamp).toLocaleTimeString(),level:p.log.level,message:p.log.message,service:p.log.service,rt:p.log.responseTime,traceId:p.log.traceId,src:p.log.source});
-                if (logs.length>800) logs.pop();
-                if (running) renderStream();
-              }
-              if (p.type === 'history' && p.logs){
-                logs = p.logs.map(l=>({ts:new Date(l.timestamp).toLocaleTimeString(),level:l.level,message:l.message,service:l.service,rt:l.responseTime,traceId:l.traceId,src:l.source}));
-                if (running) renderStream();
-              }
-              if (p.type === 'anomalies' && p.anomalies){
-                anomalies = p.anomalies.slice();
-                const aEl=document.getElementById('ano-list');
-                if(anomalies.length) aEl.innerHTML = anomalies.map(a=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${a.type} — ${a.severity}</div><div style="font-size:12px;color:var(--color-text-secondary)">${a.description}</div></div>`).join('');
-              }
-              if (p.type === 'anomaly' && p.anomaly){
-                anomalies.unshift(p.anomaly);
-                document.getElementById('m-ano').textContent = anomalies.length;
-                const aEl=document.getElementById('ano-list');
-                aEl.innerHTML = anomalies.map(a=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${a.type} — ${a.severity}</div><div style="font-size:12px;color:var(--color-text-secondary)">${a.description}</div></div>`).join('');
-              }
-            }catch(e){
-              console.error('WS onmessage parse error', e);
-            }
-          };
-          ws.onclose = ()=>{document.getElementById('ws-ind').innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#999;display:inline-block"></span>WS down';};
-          ws.onerror = ()=>{document.getElementById('ws-ind').innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#999;display:inline-block"></span>WS down';};
-        }catch(e){
-          console.error('connectWS error', e);
-        }
-      }
-
-      async function injectAnomaly(){
-        try{
-          // enable test mode (no-op if already enabled)
-          try{ await fetch(`${API_BASE}/api/debug/testmode`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:true})}); }catch(e){}
-          // emit a burst to populate buffers
-          try{ await fetch(`${API_BASE}/api/debug/emit_logs`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({count:15,level:'ERROR'})}); }catch(e){}
-          // force an anomaly for immediate UI update
-          await fetch(`${API_BASE}/api/debug/force_anomaly`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service:'dashboard',severity:'WARNING',description:'Injected anomaly via UI'})});
-          await fetchServerState();
-        }catch(e){
-          console.error('injectAnomaly error', e);
-        }
-      }
-
-      async function triggerCascade(){
-        // try server first, fallback to local injection
-        try{
-          // attempt to enable testMode so server-side helpers are available (safe in local dev)
-          try{ await fetch(`${API_BASE}/api/debug/testmode`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:true})}); }catch(e){}
-          const tasks=[];
-          for(let i=0;i<8;i++){
-            tasks.push(fetch(`${API_BASE}/api/log`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({level:'ERROR',message:`Injected spike ${i+1}`,meta:{source:'dashboard'}})}));
-          }
-          await Promise.all(tasks);
-          await fetchServerState();
-          // if server didn't surface anomalies, ask server to force one (test helpers)
-          try{
-            const a = await fetch(`${API_BASE}/api/anomalies`);
-            const aj = a.ok ? await a.json() : {count:0};
-            if ((aj.count||0) === 0){ await fetch(`${API_BASE}/api/debug/force_anomaly`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service:'dashboard',severity:'WARNING',description:'Injected anomaly via UI'})}); await fetchServerState(); }
-          }catch(e){}
-          renderStream();
-
-          // WebSocket live updates (logs + anomalies)
-          try{
-            const wsUrl = (API_BASE.replace(/^http/,'ws')) + '/ws/logs';
-            const ws = new WebSocket(wsUrl);
-            ws.onopen = ()=>{document.getElementById('ws-ind').innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#1D9E75;display:inline-block"></span>WS live';};
-            ws.onmessage = (ev)=>{
-              try{
-                const p = JSON.parse(ev.data);
-                if (p.type === 'log' && p.log){ logs.unshift({ts:new Date(p.log.timestamp).toLocaleTimeString(),level:p.log.level,message:p.log.message,service:p.log.service,rt:p.log.responseTime,traceId:p.log.traceId}); if (logs.length>800) logs.pop(); if (running) renderStream(); }
-                if (p.type === 'history' && p.logs){ logs = p.logs.map(l=>({ts:new Date(l.timestamp).toLocaleTimeString(),level:l.level,message:l.message,service:l.service,rt:l.responseTime,traceId:l.traceId})); if (running) renderStream(); }
-                if (p.type === 'anomalies' && p.anomalies){ anomalies = p.anomalies.slice(); const aEl=document.getElementById('ano-list'); if(anomalies.length)aEl.innerHTML=anomalies.map(a=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${a.type} — ${a.severity}</div><div style="font-size:12px;color:var(--color-text-secondary)">${a.description}</div></div>`).join(''); }
-                if (p.type === 'anomaly' && p.anomaly){ anomalies.unshift(p.anomaly); document.getElementById('m-ano').textContent = anomalies.length; const aEl=document.getElementById('ano-list'); aEl.innerHTML = anomalies.map(a=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${a.type} — ${a.severity}</div><div style="font-size:12px;color:var(--color-text-secondary)">${a.description}</div></div>`).join(''); }
-              }catch(e){}
-            };
-            ws.onclose = ()=>{document.getElementById('ws-ind').innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#999;display:inline-block"></span>WS down';};
-          }catch(e){}
-
-          }catch(e){
-            console.error('triggerCascade error', e);
-          }
-      }
-
-      async function clearAll(){
-        try{
-          await fetch(`${API_BASE}/api/logs`, { method:'DELETE' });
-        }catch(e){
-          // ignore API errors; still clear local state
-        }
-        logs = [];
-        anomalies = [];
-        renderStream();
-        renderTopErrors();
-        renderSources();
-        document.getElementById('m-total').textContent = '0';
-        document.getElementById('m-err').textContent = '0';
-        document.getElementById('m-avg').textContent = '0ms / 0ms';
-        document.getElementById('m-p99').textContent = '0ms';
-        document.getElementById('m-ano').textContent = '0';
-        document.getElementById('src-anomaly').textContent = '0';
-        document.getElementById('alert-badge').textContent = '0';
-        document.getElementById('src-alerts').textContent = '0';
-        document.getElementById('ano-list').innerHTML = '<div class="empty">No anomalies detected — inject one to demo</div>';
-        document.getElementById('heatmap-wrap').innerHTML = '<div class="empty">No heatmap data</div>';
-        document.getElementById('trace-list').innerHTML = '<div class="empty">Traces appear as logs arrive</div>';
-        document.getElementById('alert-feed').innerHTML = '<div class="empty">No alerts fired</div>';
-      }
-
-          // per-panel fetch helpers
-          async function fetchOverview(){
-            try{
-              const s = await (await fetch(`${API_BASE}/api/stats`)).json();
-              updateMetrics(s);
-              window.__lastStats=s; renderTopErrors(); renderSources(); renderLevelDistribution();
-              // top errors (separate endpoint)
-              try {
-                const te = await (await fetch(`${API_BASE}/api/top-errors?limit=10`)).json();
-                window.__lastTopErrors = Array.isArray(te) ? te : (te || []);
-                renderTopErrors();
-              } catch (e) {}
-              // timeline
-              const tl = await (await fetch(`${API_BASE}/api/timeline?minutes=${MINS}`)).json();
-              if (tl && Array.isArray(tl)){
-                if (tlChart){
-                  tlChart.data.datasets[0].data = tl.map(x=>x.ERROR);
-                  tlChart.data.datasets[1].data = tl.map(x=>x.WARN);
-                  tlChart.data.datasets[2].data = tl.map(x=>x.INFO);
-                  tlChart.data.datasets[3].data = tl.map(x=>x.DEBUG);
-                  tlChart.update();
-                }
-              }
-            }catch(e){}
-          }
-
-          async function fetchStream(){ try{ const lj = await (await fetch(`${API_BASE}/api/logs?limit=200`)).json(); logs = (lj.logs||[]).map(l=>({ts:new Date(l.timestamp).toLocaleTimeString(),level:l.level,message:l.message,service:l.service,rt:l.responseTime||l.rt,traceId:l.traceId})); renderStream(); }catch(e){} }
-
-          async function fetchAnomalies(){ try{ const a = await (await fetch(`${API_BASE}/api/anomalies?limit=50`)).json(); anomalies = a.anomalies||[]; const el=document.getElementById('ano-list'); if (anomalies.length) el.innerHTML = anomalies.map(a=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${a.type} — ${a.severity}</div><div style="font-size:12px;color:var(--color-text-secondary)">${a.description}</div></div>`).join(''); else el.innerHTML='<div class="empty">No anomalies detected — inject one to demo</div>'; }catch(e){} }
-
-          async function fetchHeatmap(){ try{ const h = await (await fetch(`${API_BASE}/api/heatmap`)).json(); const heatWrap = document.getElementById('heatmap-wrap'); if (h && h.matrix){ heatWrap.innerHTML = h.matrix.map((r,ri)=>`<div style="display:flex;gap:4px;margin-bottom:4px"><div style="width:34px;font-size:12px;color:var(--color-text-secondary)">${h.days[ri]}</div><div style="display:flex;gap:2px;flex:1">${r.map(v=>`<div style="flex:1;height:14px;background:rgba(226,75,74,${Math.min(0.9,v/5)})"></div>`).join('')}</div></div>`).join(''); } else heatWrap.innerHTML='<div class="empty">No heatmap data</div>'; }catch(e){} }
-
-          async function fetchTraces(){ try{ const lj = await (await fetch(`${API_BASE}/api/logs?limit=200`)).json(); const tids = [...new Set((lj.logs||[]).map(l=>l.traceId).filter(Boolean))].slice(0,10); const traceList = document.getElementById('trace-list'); if (!tids.length){ traceList.innerHTML = '<div class="empty">Traces appear as logs arrive</div>'; return; } const spanPromises = tids.map(t=>fetch(`${API_BASE}/api/trace/${t}`).then(r=>r.ok?r.json():null));
-          const spans = (await Promise.all(spanPromises)).filter(Boolean);
-          traceList.innerHTML = spans.map(s=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">Trace ${s.traceId} — ${s.spanCount} spans</div><div style="font-size:12px;color:var(--color-text-secondary)">${s.spans.slice(0,5).map(sp=>sp.service+'('+sp.level+')').join(', ')}</div></div>`).join('');
-        }catch(e){} }
-
-        async function fetchAlerts(){ try{ const a = await (await fetch(`${API_BASE}/api/alerts?limit=50`)).json(); const af = document.getElementById('alert-feed'); document.getElementById('alert-badge').textContent = a.count||0; if (a.alerts && a.alerts.length) af.innerHTML = a.alerts.map(x=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${x.type} — ${x.severity}</div><div style="font-size:12px;color:var(--color-text-secondary)">${x.description}</div></div>`).join(''); else af.innerHTML='<div class="empty">No alerts fired</div>'; }catch(e){} }
-
-      async function fetchServerState(){
-        try{
-          const [statsRes, logsRes, anoRes, heatRes, alertsRes] = await Promise.all([
-            fetch(`${API_BASE}/api/stats`),
-            fetch(`${API_BASE}/api/logs?limit=200`),
-            fetch(`${API_BASE}/api/anomalies?limit=50`),
-            fetch(`${API_BASE}/api/heatmap`),
-            fetch(`${API_BASE}/api/alerts?limit=50`)
-          ]);
-          if (!statsRes.ok || !logsRes.ok) throw new Error('api error');
-          const stats = await statsRes.json();
-          const logsJson = await logsRes.json();
-          const anomaliesJson = anoRes.ok ? await anoRes.json() : {count:0,anomalies:[]};
-          const heatJson = heatRes.ok ? await heatRes.json() : null;
-          const alertsJson = alertsRes.ok ? await alertsRes.json() : {count:0,alerts:[]};
-          // update metrics
-          updateMetrics({...stats, anomalies: stats.anomalies||anomaliesJson.count||0});
-          document.getElementById('alert-badge').textContent = alertsJson.count||0;
-          document.getElementById('src-alerts').textContent = alertsJson.count||0;
-          // store last stats for renderer helpers
-          window.__lastStats = stats;
-          // map server logs to local format
-          logs = (logsJson.logs||[]).map(l=>({ts:new Date(l.timestamp).toLocaleTimeString(),level:l.level,message:l.message,service:l.service,rt:l.responseTime||l.rt,src:l.source,traceId:l.traceId}));
-          renderStream(); renderTopErrors(); renderSources(); renderLevelDistribution();
-
-          // refresh top errors
-          try {
-            const te = await (await fetch(`${API_BASE}/api/top-errors?limit=10`)).json();
-            window.__lastTopErrors = Array.isArray(te) ? te : (te || []);
-            renderTopErrors();
-          } catch (e) {}
-
-          // render anomalies list
-          const anoWrap = document.getElementById('ano-list');
-          if (anomaliesJson && anomaliesJson.anomalies && anomaliesJson.anomalies.length){
-            anoWrap.innerHTML = anomaliesJson.anomalies.map(a=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${a.type} — ${a.severity}</div><div style="font-size:12px;color:var(--color-text-secondary)">${a.description}</div></div>`).join('');
-            anomalies = anomaliesJson.anomalies.slice();
-          } else { anoWrap.innerHTML = '<div class="empty">No anomalies detected — inject one to demo</div>'; anomalies = []; }
-
-          // render heatmap (simple text matrix)
-          const heatWrap = document.getElementById('heatmap-wrap');
-          if (heatJson && heatJson.matrix){
-            const rows = heatJson.matrix.map((r,ri)=>`<div style="display:flex;gap:4px;margin-bottom:4px"><div style="width:34px;font-size:12px;color:var(--color-text-secondary)">${heatJson.days[ri]}</div><div style="display:flex;gap:2px;flex:1">${r.map(v=>`<div style="flex:1;height:14px;background:rgba(226,75,74,${Math.min(0.9,v/5)})"></div>`).join('')}</div></div>`).join('');
-            heatWrap.innerHTML = rows;
-          } else heatWrap.innerHTML = '<div class="empty">No heatmap data</div>';
-
-          // render alerts feed (uses alerts endpoint)
-          const af = document.getElementById('alert-feed');
-          if (alertsJson && alertsJson.alerts && alertsJson.alerts.length){
-            af.innerHTML = alertsJson.alerts.map(a=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${a.type} — ${a.severity}</div><div style="font-size:12px;color:var(--color-text-secondary)">${a.description}</div></div>`).join('');
-          } else af.innerHTML = '<div class="empty">No alerts fired</div>';
-
-          // render recent traces: pick first few traceIds from logs and fetch spans
-          const traceList = document.getElementById('trace-list');
-          const tids = [...new Set(logs.map(l=>l.traceId).filter(Boolean))].slice(0,5);
-          if (tids.length){
-            const spanPromises = tids.map(tid=>fetch(`${API_BASE}/api/trace/${tid}`).then(r=>r.ok?r.json():null));
-            const spans = (await Promise.all(spanPromises)).filter(Boolean);
-            traceList.innerHTML = spans.map(s=>`<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">Trace ${s.traceId} — ${s.spanCount} spans</div><div style="font-size:12px;color:var(--color-text-secondary)">${s.spans.slice(0,5).map(sp=>sp.service+'('+sp.level+')').join(', ')}</div></div>`).join('');
-          } else traceList.innerHTML = '<div class="empty">Traces appear as logs arrive</div>';
-        }catch(err){/* ignore */}
-      }
-
-      // warm-up simulation (only when API is not reachable)
-      function startSimulation(){
-        for(let i=0;i<40;i++){logs.unshift({ts:new Date().toISOString().slice(11,19),level:['INFO','INFO','INFO','WARN','ERROR'][Math.floor(Math.random()*5)],message:'sim',service:['api-gateway','auth-service','order-service','payment-service','log-monitor-app'][Math.floor(Math.random()*5)],rt:Math.floor(Math.random()*1000)})}
-        renderStream();
-        setInterval(()=>{
-          try{
-            if(!running) return;
-            logs.unshift({
-              ts:new Date().toISOString().slice(11,19),
-              level:Math.random()>0.9?'ERROR':'INFO',
-              message:'live',
-              service:['api-gateway','auth-service','order-service','payment-service','log-monitor-app'][Math.floor(Math.random()*5)],
-              rt:Math.floor(Math.random()*1200)
-            });
-            if(logs.length>800) logs.pop();
-            renderStream();
-          }catch(e){
-            console.error('live tick error', e);
-          }
-        },1600);
-      }
-      
-      function renderTopErrors(){
-        try{
-          const el = document.getElementById('top-errors-ov');
-          const top = window.__lastTopErrors || [];
-          if (top && top.length){
-            el.innerHTML = top.map(e=>`<div style="padding:6px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${e.message.slice(0,80)}</div><div style="font-size:12px;color:var(--color-text-secondary)">${e.count} × ${e.service} · ${e.lastSeen}</div></div>`).join('');
-          } else {
-            el.innerHTML = '<div class="empty">No errors yet</div>';
-          }
-        }catch(e){
-          /* ignore */
-        }
-      }
-
-      function renderSources(){
-        try{
-          const el = document.getElementById('sources-chart');
-          const s = (window.__lastStats && window.__lastStats.sourceCounts) || {};
-          const keys = Object.keys(s).filter(k=>s[k]>0);
-          if (!keys.length){
-            el.innerHTML = '<div class="empty">No data</div>';
-            return;
-          }
-          el.innerHTML = keys.map(k=>`<div style="display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-weight:700">${k}</div><div style="color:var(--color-text-secondary)">${s[k]}</div></div>`).join('');
-        }catch(e){
-          /* ignore */
-        }
-      }
-
-      function renderLevelDistribution(){
-        try{
-          const el = document.getElementById('donut-legend');
-          const s = window.__lastStats || {};
-          const items = [
-            {label:'INFO', value:s.INFO||0, color:'#3B8BD4'},
-            {label:'WARN', value:s.WARN||0, color:'#EF9F27'},
-            {label:'ERROR', value:s.ERROR||0, color:'#E24B4A'},
-            {label:'DEBUG', value:s.DEBUG||0, color:'#888'}
-          ];
-          const total = items.reduce((a,b)=>a+b.value,0);
-          if (!total){
-            el.innerHTML = 'No data';
-            return;
-          }
-          el.innerHTML = items.map(i=>`<div style="display:flex;justify-content:space-between;padding:4px 0"><div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;background:${i.color};display:inline-block"></span>${i.label}</div><div>${i.value}</div></div>`).join('');
-        }catch(e){
-          /* ignore */
-        }
-      }
-
-      async function boot(){
-        let apiOk = false;
-        try{
-          const r = await fetch(`${API_BASE}/health`);
-          apiOk = r.ok;
-        }catch(e){
-          apiOk = false;
-        }
-        if (!apiOk){
-          startSimulation();
-          return;
-        }
-        connectWS();
-        await fetchServerState();
-        await fetchOverview();
-        setInterval(fetchOverview, 5000);
-      }
-
-      boot();
-    </script>
+    <script src="./app.js"></script>
   </body>
 </html>
