@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Screenshot 1 - Overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-2: #0f172a;
+      --card: #121b33;
+      --card-2: #0e1428;
+      --accent: #ff8a5b;
+      --accent-2: #4adbc8;
+      --accent-3: #ffe066;
+      --text: #e6e9f2;
+      --muted: #9aa3b2;
+      --stroke: #1e2a4a;
+      --good: #31d0aa;
+      --warn: #f7b733;
+      --bad: #ff5c77;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 600px at 10% 10%, #182544 0%, var(--bg) 45%),
+                  radial-gradient(900px 500px at 90% 20%, #1b2a52 0%, var(--bg) 55%);
+      min-height: 100vh;
+    }
+    .page {
+      padding: 32px 28px 48px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      gap: 16px;
+    }
+    .title h1 {
+      margin: 0;
+      font-size: 32px;
+      letter-spacing: -0.5px;
+    }
+    .title p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(74, 219, 200, 0.12);
+      color: var(--accent-2);
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+    }
+    .card {
+      background: linear-gradient(180deg, rgba(18, 27, 51, 0.9), rgba(12, 18, 36, 0.9));
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 18px 40px rgba(6, 11, 22, 0.35);
+      position: relative;
+      overflow: hidden;
+      animation: rise 0.7s ease forwards;
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(500px 180px at 10% 0%, rgba(255, 138, 91, 0.1), transparent 65%);
+      pointer-events: none;
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .stat strong {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    .stat small {
+      color: var(--accent-2);
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .chip-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .chart {
+      width: 100%;
+      height: 220px;
+    }
+    .chart svg {
+      width: 100%;
+      height: 100%;
+    }
+    .log-stream {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      max-height: 240px;
+      overflow: hidden;
+    }
+    .log-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .log-row span:last-child {
+      color: var(--muted);
+    }
+    .heatmap {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 6px;
+    }
+    .heatmap div {
+      height: 22px;
+      border-radius: 6px;
+      background: rgba(74, 219, 200, 0.12);
+    }
+    .legend {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    @keyframes rise {
+      from { transform: translateY(18px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: repeat(6, 1fr); }
+      .span-7, .span-8 { grid-column: span 6; }
+      .span-5 { grid-column: span 6; }
+      .span-4 { grid-column: span 3; }
+      .span-3 { grid-column: span 3; }
+    }
+
+    @media (max-width: 640px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .span-12, .span-8, .span-7, .span-5, .span-4, .span-3 { grid-column: span 2; }
+      .chart { height: 180px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="title">
+        <h1>Log Monitoring Overview</h1>
+        <p>Realtime pipeline status across ingest, anomaly, and alert layers</p>
+      </div>
+      <div class="pill">LIVE 00:12:42</div>
+    </header>
+
+    <section class="grid">
+      <div class="card span-3" style="animation-delay: 0.05s;">
+        <div class="stat">
+          <span>Total Logs</span>
+          <strong>4,982,114</strong>
+          <small>+3.6% vs last hour</small>
+        </div>
+      </div>
+      <div class="card span-3" style="animation-delay: 0.1s;">
+        <div class="stat">
+          <span>Error Rate</span>
+          <strong>1.72%</strong>
+          <small>Stable under 2.0%</small>
+        </div>
+      </div>
+      <div class="card span-3" style="animation-delay: 0.15s;">
+        <div class="stat">
+          <span>P95 Latency</span>
+          <strong>214 ms</strong>
+          <small>Target 250 ms</small>
+        </div>
+      </div>
+      <div class="card span-3" style="animation-delay: 0.2s;">
+        <div class="stat">
+          <span>Active Services</span>
+          <strong>5/5</strong>
+          <small>All healthy</small>
+        </div>
+      </div>
+
+      <div class="card span-7" style="animation-delay: 0.25s;">
+        <h3>Ingestion Throughput</h3>
+        <div class="chip-row">
+          <div class="chip">Peak 812 logs/s</div>
+          <div class="chip">Avg 526 logs/s</div>
+          <div class="chip">Burst 3.2x</div>
+        </div>
+        <div class="chart">
+          <svg viewBox="0 0 600 220" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="lineGlow" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#4adbc8" stop-opacity="0.6" />
+                <stop offset="100%" stop-color="#4adbc8" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <polyline fill="url(#lineGlow)" stroke="none" points="0,220 0,180 60,165 120,150 180,170 240,120 300,110 360,140 420,90 480,95 540,120 600,105 600,220" />
+            <polyline fill="none" stroke="#4adbc8" stroke-width="3" points="0,180 60,165 120,150 180,170 240,120 300,110 360,140 420,90 480,95 540,120 600,105" />
+            <line x1="0" y1="190" x2="600" y2="190" stroke="#1e2a4a" stroke-dasharray="6 6" />
+          </svg>
+        </div>
+      </div>
+
+      <div class="card span-5" style="animation-delay: 0.3s;">
+        <h3>Critical Event Mix</h3>
+        <div class="chart">
+          <svg viewBox="0 0 300 220" preserveAspectRatio="xMidYMid meet">
+            <circle cx="150" cy="110" r="70" fill="none" stroke="#1e2a4a" stroke-width="22" />
+            <circle cx="150" cy="110" r="70" fill="none" stroke="#ff8a5b" stroke-width="22" stroke-dasharray="190 260" stroke-linecap="round" />
+            <circle cx="150" cy="110" r="50" fill="none" stroke="#4adbc8" stroke-width="18" stroke-dasharray="140 200" stroke-linecap="round" />
+            <circle cx="150" cy="110" r="32" fill="none" stroke="#ffe066" stroke-width="14" stroke-dasharray="90 140" stroke-linecap="round" />
+            <text x="150" y="115" text-anchor="middle" fill="#e6e9f2" font-size="16" font-weight="700">1.72%</text>
+            <text x="150" y="135" text-anchor="middle" fill="#9aa3b2" font-size="11">errors</text>
+          </svg>
+        </div>
+        <div class="chip-row">
+          <div class="chip">Auth 38%</div>
+          <div class="chip">Checkout 31%</div>
+          <div class="chip">Search 18%</div>
+        </div>
+      </div>
+
+      <div class="card span-8" style="animation-delay: 0.35s;">
+        <h3>Live Log Stream</h3>
+        <div class="log-stream">
+          <div class="log-row"><span>[INFO] checkout-api latency=188ms trace=8fd23</span><span>12:42:18</span></div>
+          <div class="log-row"><span>[WARN] payments spike detected score=2.4</span><span>12:42:16</span></div>
+          <div class="log-row"><span>[INFO] search-api throughput=612/s</span><span>12:42:12</span></div>
+          <div class="log-row"><span>[ERROR] auth-api error=401 burst=14</span><span>12:42:09</span></div>
+          <div class="log-row"><span>[INFO] gateway health OK p95=214ms</span><span>12:42:03</span></div>
+        </div>
+      </div>
+
+      <div class="card span-4" style="animation-delay: 0.4s;">
+        <h3>Anomaly Heatmap</h3>
+        <div class="heatmap" id="heatmap"></div>
+        <div class="legend">
+          <span>Low</span>
+          <span>High</span>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+    const heat = document.getElementById("heatmap");
+    const levels = [0.1,0.2,0.3,0.4,0.6,0.8,0.5,0.2,0.3,0.7,0.9,0.4,0.2,0.1,0.5,0.7,0.6,0.2,0.3,0.4,0.9,0.8,0.6,0.3];
+    levels.forEach((lvl) => {
+      const cell = document.createElement("div");
+      const alpha = 0.15 + lvl * 0.75;
+      cell.style.background = `rgba(255, 138, 91, ${alpha})`;
+      heat.appendChild(cell);
+    });
+  </script>
+</body>
+</html>

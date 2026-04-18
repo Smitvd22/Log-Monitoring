@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Screenshot 2 - Anomaly Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #090c16;
+      --bg-2: #11162a;
+      --card: #121a31;
+      --accent: #ff7a90;
+      --accent-2: #72d6ff;
+      --accent-3: #ffd166;
+      --text: #eef2ff;
+      --muted: #94a3b8;
+      --stroke: #1b2440;
+      --good: #47e5a0;
+      --warn: #f6c453;
+      --bad: #ff637d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--text);
+      background: radial-gradient(900px 420px at 15% 0%, #1b2a4a 0%, var(--bg) 55%),
+                  linear-gradient(120deg, rgba(255, 122, 144, 0.08), transparent 45%);
+      min-height: 100vh;
+    }
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 28px 48px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    h1 { margin: 0; font-size: 30px; }
+    p { margin: 6px 0 0; color: var(--muted); }
+    .badge {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--accent-2);
+      background: rgba(114, 214, 255, 0.12);
+      font-weight: 600;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+    }
+    .card {
+      background: rgba(18, 26, 49, 0.92);
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 16px 32px rgba(6, 8, 18, 0.35);
+      animation: rise 0.7s ease forwards;
+    }
+    .span-8 { grid-column: span 8; }
+    .span-4 { grid-column: span 4; }
+    .span-6 { grid-column: span 6; }
+    .timeline {
+      display: grid;
+      gap: 12px;
+    }
+    .event {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 13px;
+    }
+    .event strong { color: var(--accent); }
+    .kpi {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .kpi span {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .kpi strong { font-size: 26px; }
+    .kpi small { color: var(--accent-3); font-weight: 600; }
+    .chart svg { width: 100%; height: 240px; }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      font-family: "IBM Plex Mono", monospace;
+    }
+    .table th, .table td {
+      text-align: left;
+      padding: 8px 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .table th { color: var(--muted); font-weight: 500; }
+
+    @keyframes rise {
+      from { transform: translateY(18px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: repeat(6, 1fr); }
+      .span-8, .span-6 { grid-column: span 6; }
+      .span-4 { grid-column: span 3; }
+    }
+
+    @media (max-width: 640px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .span-8, .span-6, .span-4 { grid-column: span 2; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <h1>Anomaly Detection Console</h1>
+        <p>Rolling z-score and IQR analysis for error spikes and latency outliers</p>
+      </div>
+      <div class="badge">Detection Window 20 min</div>
+    </header>
+
+    <section class="grid">
+      <div class="card span-4" style="animation-delay: 0.05s;">
+        <div class="kpi">
+          <span>Active Anomalies</span>
+          <strong>6</strong>
+          <small>2 critical</small>
+        </div>
+      </div>
+      <div class="card span-4" style="animation-delay: 0.1s;">
+        <div class="kpi">
+          <span>Median Latency</span>
+          <strong>186 ms</strong>
+          <small>IQR band 140 - 220</small>
+        </div>
+      </div>
+      <div class="card span-4" style="animation-delay: 0.15s;">
+        <div class="kpi">
+          <span>Error Spike Score</span>
+          <strong>2.9</strong>
+          <small>Threshold 2.4</small>
+        </div>
+      </div>
+
+      <div class="card span-8" style="animation-delay: 0.2s;">
+        <h3>Latency Distribution Band</h3>
+        <div class="chart">
+          <svg viewBox="0 0 640 240" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="band" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#72d6ff" stop-opacity="0.4" />
+                <stop offset="100%" stop-color="#72d6ff" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <rect x="0" y="0" width="640" height="240" fill="none" />
+            <polygon fill="url(#band)" points="0,180 80,170 160,160 240,150 320,158 400,168 480,150 560,140 640,155 640,240 0,240" />
+            <polyline fill="none" stroke="#72d6ff" stroke-width="2" points="0,180 80,170 160,160 240,150 320,158 400,168 480,150 560,140 640,155" />
+            <polyline fill="none" stroke="#ff7a90" stroke-width="3" points="0,200 80,196 160,170 240,142 320,180 400,210 480,170 560,130 640,160" />
+            <line x1="0" y1="130" x2="640" y2="130" stroke="#1b2440" stroke-dasharray="6 6" />
+            <line x1="0" y1="210" x2="640" y2="210" stroke="#1b2440" stroke-dasharray="6 6" />
+          </svg>
+        </div>
+      </div>
+
+      <div class="card span-4" style="animation-delay: 0.25s;">
+        <h3>Recent Anomalies</h3>
+        <div class="timeline">
+          <div class="event"><span>payments latency +4.2 IQR</span><strong>12:41</strong></div>
+          <div class="event"><span>auth error spike z=3.1</span><strong>12:38</strong></div>
+          <div class="event"><span>search latency +3.0 IQR</span><strong>12:35</strong></div>
+          <div class="event"><span>gateway error spike z=2.6</span><strong>12:33</strong></div>
+          <div class="event"><span>checkout timeout burst</span><strong>12:29</strong></div>
+        </div>
+      </div>
+
+      <div class="card span-6" style="animation-delay: 0.3s;">
+        <h3>Top Outlier Samples</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Latency</th>
+              <th>IQR Score</th>
+              <th>Trace</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>payments</td><td>832 ms</td><td>4.2</td><td>4fc31a</td></tr>
+            <tr><td>auth</td><td>610 ms</td><td>3.7</td><td>7bd9aa</td></tr>
+            <tr><td>search</td><td>544 ms</td><td>3.1</td><td>02da44</td></tr>
+            <tr><td>checkout</td><td>502 ms</td><td>2.8</td><td>b3a11d</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card span-6" style="animation-delay: 0.35s;">
+        <h3>Spike Breakdown</h3>
+        <div class="chart">
+          <svg viewBox="0 0 320 240" preserveAspectRatio="none">
+            <rect x="20" y="140" width="40" height="80" fill="#ff7a90" />
+            <rect x="90" y="100" width="40" height="120" fill="#ffd166" />
+            <rect x="160" y="70" width="40" height="150" fill="#72d6ff" />
+            <rect x="230" y="120" width="40" height="100" fill="#47e5a0" />
+            <line x1="10" y1="220" x2="310" y2="220" stroke="#1b2440" />
+            <text x="40" y="235" fill="#94a3b8" font-size="10" text-anchor="middle">Auth</text>
+            <text x="110" y="235" fill="#94a3b8" font-size="10" text-anchor="middle">Search</text>
+            <text x="180" y="235" fill="#94a3b8" font-size="10" text-anchor="middle">Payments</text>
+            <text x="250" y="235" fill="#94a3b8" font-size="10" text-anchor="middle">Checkout</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

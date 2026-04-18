@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Screenshot 3 - Alerting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0f1b;
+      --card: #121826;
+      --accent: #f97316;
+      --accent-2: #38bdf8;
+      --accent-3: #a3e635;
+      --text: #eef2ff;
+      --muted: #94a3b8;
+      --stroke: #1f2a44;
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--text);
+      background: radial-gradient(1000px 600px at 70% 0%, rgba(56, 189, 248, 0.18), transparent 50%),
+                  radial-gradient(800px 400px at 10% 10%, rgba(249, 115, 22, 0.18), transparent 55%),
+                  var(--bg);
+      min-height: 100vh;
+    }
+    .page {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 32px 28px 48px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    h1 { margin: 0; font-size: 30px; }
+    p { margin: 6px 0 0; color: var(--muted); }
+    .status {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(34, 197, 94, 0.12);
+      color: #86efac;
+      font-weight: 600;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+    }
+    .card {
+      background: rgba(18, 24, 38, 0.92);
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 16px 32px rgba(6, 8, 18, 0.35);
+      animation: rise 0.7s ease forwards;
+    }
+    .span-7 { grid-column: span 7; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+    .span-8 { grid-column: span 8; }
+    .kpi {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .kpi span {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .kpi strong { font-size: 26px; }
+    .kpi small { color: var(--accent-2); font-weight: 600; }
+    .alerts {
+      display: grid;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .alert {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .alert strong { color: var(--accent); }
+    .service-list {
+      display: grid;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .service {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    .timeline {
+      display: grid;
+      gap: 12px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+    }
+    .timeline div {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    @keyframes rise {
+      from { transform: translateY(18px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: repeat(6, 1fr); }
+      .span-7, .span-8 { grid-column: span 6; }
+      .span-5, .span-4 { grid-column: span 3; }
+    }
+
+    @media (max-width: 640px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .span-7, .span-8, .span-5, .span-4 { grid-column: span 2; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <h1>Alerting and Escalation</h1>
+        <p>Rule based triggers, cooldowns, and multi channel delivery</p>
+      </div>
+      <div class="status">ALERT PIPELINE HEALTHY</div>
+    </header>
+
+    <section class="grid">
+      <div class="card span-4" style="animation-delay: 0.05s;">
+        <div class="kpi">
+          <span>Open Alerts</span>
+          <strong>3</strong>
+          <small>1 critical, 2 warning</small>
+        </div>
+      </div>
+      <div class="card span-4" style="animation-delay: 0.1s;">
+        <div class="kpi">
+          <span>Escalations Today</span>
+          <strong>5</strong>
+          <small>Slack and SNS</small>
+        </div>
+      </div>
+      <div class="card span-4" style="animation-delay: 0.15s;">
+        <div class="kpi">
+          <span>Mean Time To Ack</span>
+          <strong>3m 14s</strong>
+          <small>Target under 5m</small>
+        </div>
+      </div>
+
+      <div class="card span-7" style="animation-delay: 0.2s;">
+        <h3>Active Alerts</h3>
+        <div class="alerts">
+          <div class="alert"><span>payments error rate 3.2%</span><strong>CRITICAL</strong></div>
+          <div class="alert"><span>auth error velocity 18/min</span><strong>CRITICAL</strong></div>
+          <div class="alert"><span>search latency p95 440ms</span><strong>WARNING</strong></div>
+        </div>
+      </div>
+
+      <div class="card span-5" style="animation-delay: 0.25s;">
+        <h3>Service Health</h3>
+        <div class="service-list">
+          <div class="service"><span><span class="dot" style="background: var(--good);"></span>gateway</span><span>Healthy</span></div>
+          <div class="service"><span><span class="dot" style="background: var(--bad);"></span>payments</span><span>Degraded</span></div>
+          <div class="service"><span><span class="dot" style="background: var(--bad);"></span>auth</span><span>Degraded</span></div>
+          <div class="service"><span><span class="dot" style="background: var(--warn);"></span>search</span><span>Warning</span></div>
+          <div class="service"><span><span class="dot" style="background: var(--good);"></span>checkout</span><span>Healthy</span></div>
+        </div>
+      </div>
+
+      <div class="card span-8" style="animation-delay: 0.3s;">
+        <h3>Escalation Timeline</h3>
+        <div class="timeline">
+          <div>12:35 - WARNING issued for search p95 latency</div>
+          <div>12:38 - CRITICAL issued for auth error spike</div>
+          <div>12:40 - SNS escalated to on-call, rule R-07</div>
+          <div>12:41 - Slack notification delivered to #infra</div>
+          <div>12:42 - CRITICAL issued for payments error rate</div>
+        </div>
+      </div>
+
+      <div class="card span-4" style="animation-delay: 0.35s;">
+        <h3>Channel Mix</h3>
+        <svg viewBox="0 0 220 220" width="100%" height="220">
+          <circle cx="110" cy="110" r="70" fill="none" stroke="#1f2a44" stroke-width="18" />
+          <circle cx="110" cy="110" r="70" fill="none" stroke="#38bdf8" stroke-width="18" stroke-dasharray="180 260" stroke-linecap="round" />
+          <circle cx="110" cy="110" r="48" fill="none" stroke="#f97316" stroke-width="16" stroke-dasharray="120 200" stroke-linecap="round" />
+          <circle cx="110" cy="110" r="28" fill="none" stroke="#a3e635" stroke-width="12" stroke-dasharray="80 140" stroke-linecap="round" />
+          <text x="110" y="114" text-anchor="middle" fill="#eef2ff" font-size="15" font-weight="700">SNS 46%</text>
+        </svg>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
